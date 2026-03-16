@@ -10,6 +10,33 @@
 
 ---
 
+## 快速开始（本仓库当前用法）
+
+在仓库根目录：
+
+1）安装依赖：
+
+- `pnpm install`
+
+2）启动数据库（PostgreSQL）：
+
+- `pnpm db:up`
+- 查看日志：`pnpm db:logs`
+- 停止：`pnpm db:down`
+
+3）启动前后端（并行）：
+
+- `pnpm dev`
+  - 仅前端：`pnpm dev:web`
+  - 仅后端：`pnpm dev:api`
+
+> 依赖新增/升级都建议在根目录用 filter：
+>
+>- 前端：`pnpm --filter web add <pkg>`
+>- 后端：`pnpm --filter api add <pkg>`
+
+---
+
 ## 0. 你要先想清楚的目标（MVP）
 
 第一次做全栈，建议先做一个 **最小可用版本（MVP）**，功能别贪多：
@@ -78,7 +105,7 @@ packages:
   "packageManager": "pnpm@latest",
   "scripts": {
     "dev:web": "pnpm --filter web dev",
-    "dev:api": "pnpm --filter api start:dev",
+    "dev:api": "pnpm --filter api dev",
     "dev": "pnpm -r --parallel dev"
   }
 }
@@ -135,29 +162,15 @@ packages:
 
 ### 2.4 准备数据库（PostgreSQL + Docker Compose）
 
-在根目录放 `docker-compose.yml`（示例）：
+本仓库根目录已经提供了 `docker-compose.yml`（与当前配置一致，Compose v2 不需要 `version:` 字段）。
 
-```yaml
-version: "3.9"
-services:
-  postgres:
-    image: postgres:16
-    container_name: blog-postgres
-    ports:
-      - "5432:5432"
-    environment:
-      POSTGRES_USER: blog
-      POSTGRES_PASSWORD: blog
-      POSTGRES_DB: blog
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-volumes:
-  pgdata:
-```
+启动数据库（推荐用根脚本）：
 
-启动数据库：
+- `pnpm db:up`
+- 查看日志：`pnpm db:logs`
+- 停止：`pnpm db:down`
 
-- `docker compose up -d`
+（你也可以直接用：`docker compose up -d`）
 
 ---
 
