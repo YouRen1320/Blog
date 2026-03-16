@@ -1,0 +1,27 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:15-alpine # 使用轻量级版 PG
+    container_name: shopping-cart-db
+    restart: always
+    ports:
+      - '5432:5432' # 把容器里的 5432 端口映射到你电脑的 5432
+    environment:
+      POSTGRES_USER: myuser # 数据库账号
+      POSTGRES_PASSWORD: mypassword # 数据库密码
+      POSTGRES_DB: shopping_cart # 数据库名字
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # 数据持久化，防止重启 Docker 数据丢失
+
+  redis:
+    image: redis:7-alpine # 轻量级 Redis 7
+    container_name: shopping-cart-redis
+    restart: always
+    ports:
+      - '6379:6379' # 把容器里的 6379 端口映射到你电脑的 6379
+    volumes:
+      - redis_data:/data # Redis 数据持久化
+
+volumes:
+  postgres_data:
+  redis_data:
