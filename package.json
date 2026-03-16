@@ -1,13 +1,13 @@
 {
-  "name": "Blog",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "name": "blog",
+  "private": true,
+  "packageManager": "pnpm@10.18.0",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "packageManager": "pnpm@10.18.0"
+    "dev:web": "pnpm --filter web dev",
+    "dev:api": "pnpm --filter api dev",
+    "dev": "pnpm -r --parallel dev",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:logs": "docker compose logs -f --tail=100"
+  }
 }
