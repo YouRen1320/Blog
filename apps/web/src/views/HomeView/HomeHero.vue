@@ -1,6 +1,6 @@
 <template>
     <section class="flex items-center justify-center">
-        <div class="grid grid-cols-[auto_auto] items-center gap-18 mt-28 w-6xl h-64s">
+        <div class="grid grid-cols-[auto_auto] items-center gap-18 mt-32 w-6xl h-64s">
             <div class="max-w-300 py-7">
                 <h1 class="text-[42px] font-semibold text-[#4e5c63]">
                     SYN. YouRen here.
@@ -19,8 +19,12 @@
 
                 <div class="mt-4 flex items-center gap-4">
                     <a v-for="social in socials" :key="social.label" :href="social.href" :aria-label="social.label"
-                        class="w-15 h-15 flex items-center justify-center rounded-full bg-[#f4f4f4] transition-transform hover:-translate-y-0.5">
+                        class="group w-15 h-15 flex items-center justify-center rounded-full bg-[#f4f4f4]  hover:0 relative">
                         <img :src="social.icon" :alt="social.label" class="h-5 w-5 object-contain opacity-90">
+                        <span
+                            class="pointer-events-none absolute top-12 left-1/2 -translate-x-1/2 text-[#66757c] whitespace-nowrap rounded-full bg-[rgb(244,244,244)] px-4 py-1.5 opacity-0 transition-opacity group-hover:opacity-100 text-[14px]">
+                            {{ social.label }}
+                        </span>
                     </a>
                 </div>
             </div>

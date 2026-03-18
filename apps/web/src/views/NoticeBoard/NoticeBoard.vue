@@ -1,6 +1,6 @@
 <template>
     <div>
-        现在的我们
+       公示板
     </div>
 </template>
 
