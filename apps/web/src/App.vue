@@ -1,12 +1,8 @@
 <template>
-  <div>
-
-  </div>
-  <router-view></router-view>
+  <RouterView />
 </template>
 
-<script setup>
+
+<script setup lang="ts">
 
 </script>
-
-<style></style>
