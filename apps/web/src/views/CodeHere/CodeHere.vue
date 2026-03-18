@@ -1,6 +1,6 @@
 <template>
     <div>
-        现在的我们
+        这里的代码
     </div>
 </template>
 
@@ -8,6 +8,4 @@
 
 </script>
 
-<style scoped>
-
-</style>
+<style scoped></style>

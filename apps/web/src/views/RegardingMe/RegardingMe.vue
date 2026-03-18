@@ -1,6 +1,6 @@
 <template>
     <div>
-        现在的我们
+        关于我
     </div>
 </template>
 
