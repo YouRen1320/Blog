@@ -1,7 +1,21 @@
 <template>
     <HomeHero />
-    <ArticleCard v-for="item in PostList" :key="item.id" :post="item" />
+
+    <section class="mx-auto mt-30 max-w-7xl px-6">
+        <div class="grid grid-cols-3 gap-8">
+            <ArticleCard v-for="item in PostList" :key="item.id" :post="item" />
+        </div>
+
+        <div class="mt-6 flex justify-end pr-6">
+            <div
+                class="flex w-40.5 h-[52.5px] justify-center items-center rounded-lg border border-[#d9d9d9] bg-white text-[16px] font-mono text-[#5f6a6f] shadow-[0_6px_20px_rgba(0,0,0,0.04)] transition hover:bg-[#f8f8f8] cursor-pointer">
+                <span class="text-[28px] mr-4">→</span>
+                <span>阅读更多</span>
+            </div>
+        </div>
+    </section>
 </template>
+
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
