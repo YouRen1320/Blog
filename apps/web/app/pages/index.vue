@@ -1,6 +1,6 @@
 <template>
-    <section class="relative mx-auto min-h-[calc(100vh-64px)] max-w-7xl px-6">
-        <div class="grid min-h-[calc(100vh-64px)] items-center gap-[72px] lg:grid-cols-[1fr_auto]">
+    <section class="relative mx-auto h-[calc(100vh-64px)] max-w-7xl px-6">
+        <div class="grid h-full items-center gap-[72px] lg:grid-cols-[1fr_auto]">
             <div class="max-w-[720px] py-7">
                 <h1 class="text-[42px] font-semibold tracking-tight text-[#4e5c63] md:text-[56px]">
                     SYN. YouRen here.
@@ -37,13 +37,15 @@
             </div>
         </div>
 
-        <div class="absolute bottom-10 left-1/2 -translate-x-1/2">
-            <img :src="downPageIcon" alt="Scroll down"
-                class="h-6 w-6 cursor-pointer opacity-70 transition hover:opacity-100">
-        </div>
+        <NuxtLink to="#articles"
+            class="absolute bottom-10 left-1/2 -translate-x-1/2 opacity-70 transition hover:opacity-100"
+            aria-label="Scroll to articles">
+            <img :src="downPageIcon" alt="Scroll down" class="h-6 w-6 cursor-pointer">
+        </NuxtLink>
+
     </section>
 
-    <section class="mx-auto mt-[120px] max-w-7xl px-6">
+    <section id="articles" class="mx-auto mt-[120px] max-w-7xl px-6">
         <div class="grid gap-8 md:grid-cols-2 xl:grid-cols-3">
             <ArticleCard v-for="item in postList" :key="item.id" :post="item" />
         </div>
