@@ -1,6 +1,6 @@
 <template>
     <footer class="border-t border-gray-200 px-6 py-8 text-sm text-gray-500 mt-8">
-        <div class="mx-auto flex max-w-7xl flex-col gap-6 md:flex-row md:items-center md:justify-between">
+        <div class="m-auto flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div class="space-y-4">
                 <div class="flex flex-wrap items-center gap-2">
                     <span class="font-mono text-gray-500">#</span>
