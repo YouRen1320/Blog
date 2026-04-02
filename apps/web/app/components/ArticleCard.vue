@@ -1,9 +1,9 @@
 <template>
   <div
-    class="h-[341px] w-[362px] overflow-hidden rounded-2xl border border-[#dbdbdb] bg-[#f7f7f7] shadow-[0_8px_30px_rgba(0,0,0,0.03)]"
+    class="w-full overflow-hidden rounded-2xl border border-[#dbdbdb] bg-[#f7f7f7] shadow-[0_8px_30px_rgba(0,0,0,0.03)]"
   >
     <img :src="post.cover" :alt="post.title" class="h-[183px] w-full object-cover">
-    <div class="px-7 pt-7">
+    <div class="px-7 pt-7 pb-6">
       <h3 class="text-[18px] font-semibold text-[#535f64]">
         {{ post.title }}
       </h3>
@@ -40,7 +40,7 @@ interface PostCard {
   pinned?: boolean
 }
 
-const props = defineProps<{
+defineProps<{
   post: PostCard
 }>()
 </script>
