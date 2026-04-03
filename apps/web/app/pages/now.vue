@@ -1,6 +1,6 @@
 <template>
-    <section class="mx-auto max-w-[760px] px-6 py-14 md:py-20">
-        <article class="text-[16px] leading-[1.95] text-[#59686f]">
+    <section class="mx-auto max-w-[720px] px-6 py-14 md:py-20">
+        <article class="text-[16px] leading-[1.95] text-[#5c6a71]">
             <header>
                 <h1 class="text-[42px] font-semibold tracking-tight text-[#4d5a61] md:text-[48px]">
                     如今
@@ -14,17 +14,17 @@
                 </div>
             </header>
 
-            <section class="mt-8 border-l-2 border-[#ece4d8] pl-5">
+            <section class="mt-9 border-l-2 border-[#e8dfd2] pl-5">
                 <h2 class="text-[18px] font-medium text-[#5a666d]">目录</h2>
-                <nav class="mt-3 text-[15px] text-[#6a777d]">
+                <nav class="mt-3 text-[15px] text-[#67747b]">
                     <ul class="space-y-2">
                         <li v-for="section in sections" :key="section.id">
-                            <a :href="`#${section.id}`" class="transition hover:text-[#48545b] hover:underline">
+                            <a :href="`#${section.id}`" class="transition hover:text-[#49565d] hover:underline underline-offset-4">
                                 {{ section.title }}
                             </a>
                             <ul v-if="section.children" class="mt-2 space-y-1.5 pl-5 text-[14px] text-[#8b7d70]">
                                 <li v-for="child in section.children" :key="child.id">
-                                    <a :href="`#${child.id}`" class="transition hover:text-[#48545b] hover:underline">
+                                    <a :href="`#${child.id}`" class="transition hover:text-[#49565d] hover:underline underline-offset-4">
                                         {{ child.title }}
                                     </a>
                                 </li>
@@ -34,24 +34,24 @@
                 </nav>
             </section>
 
-            <div class="mt-10 space-y-12">
+            <div class="mt-11 space-y-12">
                 <section id="about-now" class="scroll-mt-24">
-                    <h2 class="text-[28px] font-semibold tracking-tight text-[#4d5a61]">有关 /now</h2>
+                    <h2 class="text-[29px] font-semibold tracking-tight text-[#4d5a61]">有关 /now</h2>
                     <div class="mt-4 space-y-5">
                         <p>
                             “Now page” 的概念来自 Derek Sivers 与 nownownow.com。它不是动态列表，也不适合记录所有零碎小事，而是用来说明：在这个阶段，我究竟在把时间和注意力放在哪里。
                         </p>
-                        <blockquote class="border-l-2 border-[#e6ddd1] pl-4 italic text-[#7d7267]">
+                        <blockquote class="border-l-2 border-[#e3dacf] pl-4 italic text-[#7d7267]">
                             A now page is a page that tells you what this person is focused on at this point in their life.
                         </blockquote>
                         <p>
-                            因此，这一页会偏向生活与兴趣的总体状态，而不是过分细小的即时更新。如果只是一些短句、碎片和偶发念头，它们更适合留在别处。
+                            因此，这一页会偏向生活与兴趣的总体状态，而不是过分细小的即时更新。如果只是一些短句、碎片和偶发念头，它们更适合留在别处，比如社交平台或更轻量的时间线里。
                         </p>
                     </div>
                 </section>
 
                 <section id="chlorine" class="scroll-mt-24">
-                    <h2 class="text-[28px] font-semibold tracking-tight text-[#4d5a61]">小氯</h2>
+                    <h2 class="text-[29px] font-semibold tracking-tight text-[#4d5a61]">小氯</h2>
                     <div class="mt-4 space-y-5">
                         <p>
                             我是 YouRen。写代码、写作、做一些与表达相关的东西，构成了我现在大部分稳定而重复的日常。
@@ -63,7 +63,7 @@
                 </section>
 
                 <section id="life" class="scroll-mt-24">
-                    <h2 class="text-[28px] font-semibold tracking-tight text-[#4d5a61]">生活概况</h2>
+                    <h2 class="text-[29px] font-semibold tracking-tight text-[#4d5a61]">生活概况</h2>
 
                     <div class="mt-6 space-y-10">
                         <section id="research" class="scroll-mt-24">
