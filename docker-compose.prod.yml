@@ -1,0 +1,98 @@
+# 生产编排:Caddy 反代外网 + api / web / admin / ai-service / postgres 内网通信。
+#
+# 前提:
+# - 服务器已装 docker + docker compose
+# - /opt/blog/.env 准备好(生产 secret,不进 git)
+# - 域名 www.iyouren.top + iyouren.top + admin.iyouren.top 解析到本机 IP
+#
+# 启动:`docker compose -f docker-compose.prod.yml --env-file /opt/blog/.env up -d`
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    # 不暴露 5432 到外网,只走内部网络
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      AI_SERVICE_BASE_URL: http://ai-service:8001
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/articles"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      NUXT_PUBLIC_API_BASE: https://www.iyouren.top/api
+      PORT: 3000
+
+  admin:
+    build:
+      context: .
+      dockerfile: apps/admin/Dockerfile
+    restart: unless-stopped
+
+  ai-service:
+    build:
+      context: ./apps/ai-service
+    restart: unless-stopped
+    environment:
+      XIAOMI_MIMO_API_KEY: ${XIAOMI_MIMO_API_KEY}
+      XIAOMI_MIMO_BASE_URL: ${XIAOMI_MIMO_BASE_URL}
+      XIAOMI_MIMO_MODEL: ${XIAOMI_MIMO_MODEL}
+      USE_MOCK_LLM: ${USE_MOCK_LLM:-false}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8001/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+      - web
+      - admin
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:

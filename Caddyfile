@@ -1,0 +1,41 @@
+# Caddy 反向代理配置 —— V2 部署时启用
+#
+# 自动 HTTPS:Caddy 在端口 443 出现请求时自动从 Let's Encrypt 申请证书并续签。
+#   要求:80 + 443 端口对外开放,域名解析到本机。
+#
+# 域名分配:
+#   www.iyouren.top + iyouren.top   → Nuxt 公开站
+#   admin.iyouren.top                → Vue admin SPA
+#   www.iyouren.top/api/*            → NestJS API(以 /api 前缀路由,前端代码已配)
+
+(common) {
+	encode zstd gzip
+	header {
+		# HSTS 由 Caddy 默认开
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer-when-downgrade"
+	}
+}
+
+iyouren.top {
+	import common
+	# 裸域 301 到 www
+	redir https://www.iyouren.top{uri} permanent
+}
+
+www.iyouren.top {
+	import common
+
+	# /api/* 反代到 NestJS,strip 前缀
+	handle_path /api/* {
+		reverse_proxy api:3000
+	}
+
+	# 其它走 Nuxt
+	reverse_proxy web:3000
+}
+
+admin.iyouren.top {
+	import common
+	reverse_proxy admin:80
+}

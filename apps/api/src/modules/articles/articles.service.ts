@@ -23,8 +23,11 @@ export class ArticlesService {
   constructor(private readonly prisma: PrismaService) {}
 
   async listAdmin(query: ArticleQueryDto) {
-    const { page, pageSize, status } = query;
-    const where: Prisma.ArticleWhereInput = status ? { status } : {};
+    const { page, pageSize, status, source } = query;
+    const where: Prisma.ArticleWhereInput = {
+      ...(status ? { status } : {}),
+      ...(source ? { source } : {}),
+    };
     const [total, data] = await this.prisma.$transaction([
       this.prisma.article.count({ where }),
       this.prisma.article.findMany({

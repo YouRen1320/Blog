@@ -1,6 +1,6 @@
 import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ArticleStatus } from '@prisma/client';
+import { ArticleSource, ArticleStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { makeSlug } from '../../common/utils/slug';
 import { CreateAiDraftDto } from './dto/create-draft.dto';
@@ -58,7 +58,7 @@ export class AiService {
       const exists = await tx.article.findUnique({ where: { slug } });
       if (exists) slug = `${slug}-${Date.now().toString(36)}`;
 
-      // 4. 落库
+      // 4. 落库,标记 source=AI
       return tx.article.create({
         data: {
           title: draft.title,
@@ -66,6 +66,7 @@ export class AiService {
           summary: draft.summary,
           content: draft.content,
           status: ArticleStatus.DRAFT,
+          source: ArticleSource.AI,
           authorId,
           categoryId,
           tags: tagIds.length ? { create: tagIds.map((tagId) => ({ tagId })) } : undefined,
@@ -79,17 +80,24 @@ export class AiService {
   }
 
   /**
-   * HTTP 调 Python 服务。出错时抛 503,前端会得到清晰的错误。
-   * 用 Node 18+ 自带 fetch,不依赖 axios / @nestjs/axios。
+   * HTTP 调 Python 服务。
+   * - 用 Node 18+ 自带 fetch + AbortController 防止 LLM 慢导致请求挂死
+   * - 90s 上限(LLM 长内容生成 30-60s 常见,留余量)
+   * - 出错时抛 503,前端拿到清晰 message
    */
   private async callAiService(dto: CreateAiDraftDto): Promise<AiServiceDraft> {
     const baseUrl = this.config.get<string>('AI_SERVICE_BASE_URL') ?? 'http://127.0.0.1:8001';
     this.logger.log(`calling ai-service ${baseUrl}/generate/article (prompt=${dto.prompt.slice(0, 40)}…)`);
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 90_000);
+
     let res: Response;
     try {
       res = await fetch(`${baseUrl}/generate/article`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({
           prompt: dto.prompt,
           tone: dto.tone ?? 'technical',
@@ -97,8 +105,15 @@ export class AiService {
         }),
       });
     } catch (err) {
-      this.logger.error('ai-service unreachable', err as Error);
+      const e = err as Error;
+      if (e.name === 'AbortError') {
+        this.logger.error('ai-service timeout after 90s');
+        throw new ServiceUnavailableException('AI 生成超时(>90s),请稍后再试');
+      }
+      this.logger.error('ai-service unreachable', e);
       throw new ServiceUnavailableException('AI 服务不可用,请稍后再试');
+    } finally {
+      clearTimeout(timer);
     }
     if (!res.ok) {
       const body = await res.text();

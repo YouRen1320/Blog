@@ -1,6 +1,7 @@
 import { apiClient } from './client'
 
 export type ArticleStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'
+export type ArticleSource = 'MANUAL' | 'AI'
 
 export interface ArticleSummary {
   id: string
@@ -9,6 +10,7 @@ export interface ArticleSummary {
   summary: string | null
   cover: string | null
   status: ArticleStatus
+  source: ArticleSource
   publishedAt: string | null
   createdAt: string
   updatedAt: string
@@ -38,7 +40,9 @@ export interface CreateArticleInput {
 
 export type UpdateArticleInput = Partial<CreateArticleInput>
 
-export async function listArticles(params: { page?: number; pageSize?: number; status?: ArticleStatus } = {}) {
+export async function listArticles(
+  params: { page?: number; pageSize?: number; status?: ArticleStatus; source?: ArticleSource } = {},
+) {
   const { data } = await apiClient.get<PaginatedArticles>('/admin/articles', { params })
   return data
 }

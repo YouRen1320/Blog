@@ -21,6 +21,12 @@ enum ArticleStatus {
   ARCHIVED
 }
 
+// 区分文章是手动创建还是 AI 生成
+enum ArticleSource {
+  MANUAL
+  AI
+}
+
 model User {
   id           String    @id @default(cuid())
   username     String    @unique
@@ -42,6 +48,7 @@ model Article {
   content     String
   cover       String?
   status      ArticleStatus @default(DRAFT)
+  source      ArticleSource @default(MANUAL)
   authorId    String
   categoryId  String?
   publishedAt DateTime?

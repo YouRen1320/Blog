@@ -105,7 +105,8 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    const res = await listArticles({ status: 'DRAFT', pageSize: 50 })
+    // 收件箱只看 AI 草稿(手动建的草稿走 /articles 列表)
+    const res = await listArticles({ status: 'DRAFT', source: 'AI', pageSize: 50 })
     drafts.value = res.data
     if (drafts.value.length > 0 && !activeId.value) {
       activeId.value = drafts.value[0].id
