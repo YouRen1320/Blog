@@ -10,8 +10,8 @@
 |------|------|------|----------|
 | **V1** —— 本地闭环 | ✅ 完成 (v0.1.0) | DB + Prisma + auth + 文章/分类/标签 CRUD + 发布 + Admin 全功能 + Web 接 API + 种子数据 | 本地 `docker compose up` 后,登录后台 → 写文章 → 发布 → web 能看到 |
 | **V3** —— 移动端 | ✅ 完成 (v0.3.0) | Flutter 登录 / 文章列表 / 详情 / 草稿 CRUD / 文本+语音创作入口(语音占位) | flutter analyze 全绿,APK 可构建,登录看草稿主链路通 |
-| **V4** —— AI 生产 | 进行中 | Python ai-service(FastAPI) + 小米 MiMo 模型 + 结构化输出 + NestJS `/ai/*` 接入 + 草稿审核流 | 移动端输入需求 → 后台出现 AI 草稿 → 审核发布 |
-| **Final** —— 生产化 | 待做 | 日志 + 监控 + 速率限制 + 完整测试 + 性能调优 + 文档 | 全链路有可观测性,异常可告警 |
+| **V4** —— AI 生产 | ✅ 完成 (v0.4.0) | Python ai-service(FastAPI) + 小米 MiMo 模型 + 结构化输出 + NestJS `/ai/*` 接入 + 草稿审核流 | mock 模式全链路通,真模式待小米 MiMo endpoint 验证 |
+| **Final** —— 生产化 | 进行中 | 日志 + 监控 + 速率限制 + 完整测试 + 性能调优 + 文档 | 全链路有可观测性,异常可告警 |
 | **V2** —— 真上线 | 推迟到最后 | 服务器初始化 + Caddy 自动 HTTPS + 域名解析 + 生产 docker-compose + GitHub Actions CI/CD + 自动备份 + 健康检查 | https://www.iyouren.top 可访问,push main 自动部署 |
 
 ---

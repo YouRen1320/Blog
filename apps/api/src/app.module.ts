@@ -8,6 +8,7 @@ import { ArticlesModule } from './modules/articles/articles.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { TagsModule } from './modules/tags/tags.module';
 import { PublicModule } from './modules/public/public.module';
+import { AiModule } from './modules/ai/ai.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { validateEnv } from './config/env.validation';
@@ -26,6 +27,7 @@ import { validateEnv } from './config/env.validation';
     CategoriesModule,
     TagsModule,
     PublicModule,
+    AiModule,
   ],
   providers: [
     // 全局守卫顺序很重要:先 JWT 校验,再 role 校验

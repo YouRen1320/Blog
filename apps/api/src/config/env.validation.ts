@@ -31,6 +31,10 @@ class EnvVariables {
   @IsString()
   @IsOptional()
   JWT_EXPIRES_IN: string = '7d';
+
+  @IsString()
+  @IsOptional()
+  AI_SERVICE_BASE_URL: string = 'http://127.0.0.1:8001';
 }
 
 export function validateEnv(config: Record<string, unknown>) {

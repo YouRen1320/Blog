@@ -1,15 +1,29 @@
-// /create —— AI 创作入口(V3-06 占位版)。
+// /create —— AI 创作入口(V4-06 真接通):
+// 提交 prompt → POST /admin/ai/drafts → 拿到生成的 ArticleDetail → 跳转草稿列表。
 //
-// V3 阶段:UI + 交互骨架就位,但"AI 帮我写"按钮只 toast 提示等 V4。
-// V4 时:接入 NestJS /ai/generate/article,提交后跳到结果预览页 → 落库为草稿。
+// V3 阶段是"按钮 toast 占位",现在真打 NestJS,NestJS 转给 ai-service。
+// USE_MOCK_LLM=true 时 ai-service 返回固定假数据,前端流程依然完整。
 //
-// 语音输入按钮 V3 也只是占位(Material 麦克风图标),V4 时接 speech_to_text。
+// 语音输入按钮仍然占位(speech_to_text 留给 Final 阶段)。
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../providers/ai_provider.dart';
+import '../providers/articles_provider.dart';
 import '../theme/tokens.dart';
 
-const _tones = ['技术 · 严谨', '随笔 · 轻盈', '诗意 · 抒情', '记叙 · 故事'];
-const _lengths = ['短 · 800 字', '中 · 1500 字', '长 · 3000 字'];
+const _toneLabels = [
+  ('technical', '技术 · 严谨'),
+  ('casual', '随笔 · 轻盈'),
+  ('poetic', '诗意 · 抒情'),
+  ('narrative', '记叙 · 故事'),
+];
+
+const _lengthLabels = [
+  ('short', '短 · 800 字'),
+  ('medium', '中 · 1500 字'),
+  ('long', '长 · 3000 字'),
+];
 
 class CreateRequestPage extends ConsumerStatefulWidget {
   const CreateRequestPage({super.key});
@@ -20,8 +34,38 @@ class CreateRequestPage extends ConsumerStatefulWidget {
 
 class _CreateRequestPageState extends ConsumerState<CreateRequestPage> {
   final _prompt = TextEditingController();
-  String _tone = _tones[0];
-  String _length = _lengths[1];
+  String _tone = 'technical';
+  String _length = 'medium';
+  bool _busy = false;
+  String? _error;
+
+  Future<void> _submit() async {
+    if (_prompt.text.trim().isEmpty) {
+      setState(() => _error = '先告诉 AI 你想写什么');
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      final draft = await ref.read(aiServiceProvider).generateDraft(
+            prompt: _prompt.text.trim(),
+            tone: _tone,
+            length: _length,
+          );
+      ref.invalidate(draftsProvider);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('已生成草稿:${draft.title}')),
+      );
+      context.go('/drafts');
+    } catch (e) {
+      setState(() => _error = '$e');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +81,7 @@ class _CreateRequestPageState extends ConsumerState<CreateRequestPage> {
           Text('让 AI 帮你起稿', style: AppType.cn(fontSize: 28, fontWeight: FontWeight.w600, color: context.ink)),
           const SizedBox(height: 8),
           Text(
-            '描述你想写什么,选语气和长度,AI 会生成结构化草稿:标题 / 摘要 / 正文 / 标签 / 分类。',
+            '描述你想写什么,选语气和长度。\n点"生成"后,文章会作为草稿落进收件箱待审核。',
             style: AppType.cn(fontSize: 13, color: context.ink2, height: 1.7),
           ),
           const SizedBox(height: 28),
@@ -53,11 +97,12 @@ class _CreateRequestPageState extends ConsumerState<CreateRequestPage> {
                     controller: _prompt,
                     minLines: 4,
                     maxLines: 8,
+                    enabled: !_busy,
                     style: AppType.cn(fontSize: 14, color: context.ink, height: 1.6),
                     decoration: InputDecoration(
                       contentPadding: const EdgeInsets.all(14),
                       border: InputBorder.none,
-                      hintText: '比如:写一篇关于 Prisma 与 NestJS 集成的入门文章',
+                      hintText: '写一篇关于 Prisma 与 NestJS 集成的入门文章',
                       hintStyle: AppType.cn(fontSize: 14, color: context.ink3, height: 1.6),
                     ),
                   ),
@@ -65,7 +110,7 @@ class _CreateRequestPageState extends ConsumerState<CreateRequestPage> {
               ),
               const SizedBox(width: 10),
               GestureDetector(
-                onTap: () => _info(context, '语音输入将在 V4 接 speech_to_text 后启用'),
+                onTap: _busy ? null : () => _info(context, '语音输入留给 Final 阶段接 speech_to_text'),
                 child: Container(
                   width: 56,
                   height: 56,
@@ -81,7 +126,7 @@ class _CreateRequestPageState extends ConsumerState<CreateRequestPage> {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: _tones.map((t) => _chip(context, t, _tone == t, () => setState(() => _tone = t))).toList(),
+            children: _toneLabels.map((t) => _chip(context, t.$2, _tone == t.$1, () => setState(() => _tone = t.$1))).toList(),
           ),
           const SizedBox(height: 20),
           _label(context, 'LENGTH'),
@@ -89,27 +134,36 @@ class _CreateRequestPageState extends ConsumerState<CreateRequestPage> {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: _lengths.map((l) => _chip(context, l, _length == l, () => setState(() => _length = l))).toList(),
+            children: _lengthLabels.map((l) => _chip(context, l.$2, _length == l.$1, () => setState(() => _length = l.$1))).toList(),
           ),
+          if (_error != null) ...[
+            const SizedBox(height: 18),
+            Text(_error!, style: AppType.sans(fontSize: 12, color: const Color(0xFFC0392B))),
+          ],
           const SizedBox(height: 32),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              icon: const Icon(Icons.auto_awesome, size: 18),
-              label: Text('AI 帮我写', style: AppType.sans(fontSize: 14, fontWeight: FontWeight.w600)),
+              icon: _busy
+                  ? const SizedBox(
+                      width: 16, height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation(Colors.white)),
+                    )
+                  : const Icon(Icons.auto_awesome, size: 18),
+              label: Text(_busy ? '生成中…' : '✦ 生成草稿', style: AppType.sans(fontSize: 14, fontWeight: FontWeight.w600)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: context.ink,
                 foregroundColor: context.bg,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              onPressed: () => _info(context, 'AI 服务在 V4 上线\n这一步将提交到 /ai/generate/article'),
+              onPressed: _busy ? null : _submit,
             ),
           ),
           const SizedBox(height: 14),
           Center(
             child: Text(
-              'V4 起接入 xiaomi MiMo · 结果会落进草稿箱',
+              'POST /admin/ai/drafts → ai-service → 落库',
               style: AppType.mono(fontSize: 10, color: context.ink3, letterSpacing: 1.2),
             ),
           ),
@@ -119,10 +173,7 @@ class _CreateRequestPageState extends ConsumerState<CreateRequestPage> {
   }
 
   void _info(BuildContext c, String msg) => ScaffoldMessenger.of(c).showSnackBar(
-        SnackBar(
-          content: Text(msg, style: AppType.cn(fontSize: 13)),
-          duration: const Duration(seconds: 3),
-        ),
+        SnackBar(content: Text(msg, style: AppType.cn(fontSize: 13)), duration: const Duration(seconds: 3)),
       );
 
   Widget _label(BuildContext c, String text) =>

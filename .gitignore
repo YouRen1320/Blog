@@ -23,6 +23,14 @@ playwright-report/
 # Prisma 生成产物
 apps/api/generated/
 
+# Python (apps/ai-service)
+apps/ai-service/.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
 # logs
 logs
 *.log
