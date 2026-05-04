@@ -1,103 +1,81 @@
 // Youren Blog · Mobile (Flutter)
-// 入口：装载 v3 主题，给三个屏（浏览/语音/草稿）配上底部导航。
-// 暗色模式靠 ThemeMode.system 跟随系统；后续可加 Provider 控制。
+// 入口:
+// 1. 装 .env(flutter_dotenv)
+// 2. ProviderScope 包裹整个应用(Riverpod)
+// 3. AuthGate 启动时 hydrate auth + 把 token getter 注入 dio
+// 4. go_router 接管路由
 import 'package:flutter/material.dart';
-import 'screens/browse_screen.dart';
-import 'screens/voice_screen.dart';
-import 'screens/draft_screen.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'providers/auth_provider.dart';
+import 'router.dart';
 import 'theme/tokens.dart';
 
-void main() => runApp(const YourenApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  // .env 加载失败也不阻塞启动,fallback 到 const baseUrl
+  try {
+    await dotenv.load(fileName: '.env');
+  } catch (_) {}
+  runApp(const ProviderScope(child: YourenApp()));
+}
 
-class YourenApp extends StatelessWidget {
+class YourenApp extends ConsumerWidget {
   const YourenApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Youren · Mobile',
-      debugShowCheckedModeBanner: false,
-      theme: buildTheme(dark: false),
-      darkTheme: buildTheme(dark: true),
-      themeMode: ThemeMode.system,
-      home: const RootShell(),
-    );
+  Widget build(BuildContext context, WidgetRef ref) {
+    return _AuthGate(builder: (router) {
+      return MaterialApp.router(
+        title: 'Youren · Mobile',
+        debugShowCheckedModeBanner: false,
+        theme: buildTheme(dark: false),
+        darkTheme: buildTheme(dark: true),
+        themeMode: ThemeMode.system,
+        routerConfig: router,
+      );
+    });
   }
 }
 
-/// 三屏外壳：底部 3 标签对应浏览 / 语音 / 草稿。
-/// 浏览屏自带浮起药丸导航，因此切到它时隐藏外壳的底部 nav。
-class RootShell extends StatefulWidget {
-  const RootShell({super.key});
+/// 启动时:
+/// - 把 dio 的 token getter / 401 handler 接到 authProvider
+/// - 调用 hydrate() 从 secure_storage 读上次的登录态
+/// - 一切就绪后再构建 router(避免 redirect 在 ready=false 时误判)
+class _AuthGate extends ConsumerStatefulWidget {
+  final Widget Function(GoRouterFromBuilder router) builder;
+  const _AuthGate({required this.builder});
 
   @override
-  State<RootShell> createState() => _RootShellState();
+  ConsumerState<_AuthGate> createState() => _AuthGateState();
 }
 
-class _RootShellState extends State<RootShell> {
-  int idx = 0;
+typedef GoRouterFromBuilder = dynamic;
 
-  static const _screens = <Widget>[
-    BrowseScreen(),
-    VoiceScreen(),
-    DraftScreen(),
-  ];
+class _AuthGateState extends ConsumerState<_AuthGate> {
+  late final dynamic _router;
+  bool _wired = false;
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: context.bg,
-      body: IndexedStack(index: idx, children: _screens),
-      bottomNavigationBar: idx == 0
-          ? null
-          : _BottomNav(
-              index: idx,
-              onChange: (i) => setState(() => idx = i),
-            ),
-    );
+  void initState() {
+    super.initState();
+    _wireUp();
   }
-}
 
-class _BottomNav extends StatelessWidget {
-  final int index;
-  final ValueChanged<int> onChange;
-  const _BottomNav({required this.index, required this.onChange});
+  void _wireUp() {
+    final api = ref.read(apiClientProvider);
+    api.installAuth(
+      getToken: () => ref.read(authProvider).token,
+      onUnauthorized: () => ref.read(authProvider.notifier).logout(),
+    );
+    ref.read(authProvider.notifier).hydrate();
+    _router = buildRouter(ref);
+    _wired = true;
+  }
 
   @override
   Widget build(BuildContext context) {
-    final tabs = ['◉', '✎', '✦'];
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-        child: Container(
-          decoration: BoxDecoration(
-            color: context.card,
-            borderRadius: BorderRadius.circular(999),
-            boxShadow: v3Shadow,
-          ),
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Row(
-            children: List.generate(tabs.length, (i) {
-              final on = i == index;
-              return Expanded(
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => onChange(i),
-                  child: Center(
-                    child: Text(
-                      tabs[i],
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: on ? context.accent : context.ink3,
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            }),
-          ),
-        ),
-      ),
-    );
+    if (!_wired) return const SizedBox();
+    return widget.builder(_router);
   }
 }
