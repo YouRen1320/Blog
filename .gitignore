@@ -11,6 +11,17 @@ packages/**/node_modules/
 /build
 apps/**/dist/
 apps/**/build/
+apps/web/.nuxt/
+apps/web/.output/
+apps/api/coverage/
+
+# Playwright
+test-results/
+e2e/report/
+playwright-report/
+
+# Prisma 生成产物
+apps/api/generated/
 
 # logs
 logs

@@ -1,16 +1,21 @@
 services:
   postgres:
-    image: postgres:16
+    image: postgres:16-alpine
     container_name: blog-postgres
-    restart: always
+    restart: unless-stopped
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     environment:
-      POSTGRES_USER: blog
-      POSTGRES_PASSWORD: blog
-      POSTGRES_DB: blog
+      POSTGRES_USER: ${POSTGRES_USER:-blog}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-blog}
+      POSTGRES_DB: ${POSTGRES_DB:-blog}
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
 volumes:
   pgdata:

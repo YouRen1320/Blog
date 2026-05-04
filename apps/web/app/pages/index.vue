@@ -39,19 +39,34 @@
     <span>↓</span>
   </NuxtLink>
 
-  <!-- 下半：文章卡片网格（最多 6 张） -->
+  <!-- 下半:文章卡片网格(最多 6 张已发布,从 API 取) -->
   <section id="articles" class="grid-section">
-    <ArticleCard v-for="item in postList" :key="item.id" :post="item" />
+    <NuxtLink
+      v-for="item in postList"
+      :key="item.id"
+      :to="`/writing/${item.slug}`"
+      class="card-link"
+    >
+      <ArticleCard :post="item.card" />
+    </NuxtLink>
   </section>
 
   <div class="more-row">
-    <button class="more-btn mono" type="button">→ 阅读更多</button>
+    <NuxtLink to="/writing" class="more-btn mono">→ 阅读更多</NuxtLink>
   </div>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import ArticleCard from '../components/ArticleCard.vue'
 import headImage from '../assets/image/head.jpg'
+import { useArticleList } from '../composables/useArticles'
+import { frenchSeason, seedFromId, shortDate } from '../utils/format'
+
+useSeoMeta({
+  title: 'YouRen · 写作 / 笔记 / AI 内容生产',
+  description: 'Youren 的博客主页:最新文章、笔记和 AI 内容生产实验。',
+})
 
 import atomIcon from '../assets/svg/atom.svg'
 import codebergIcon from '../assets/svg/codeberg.svg'
@@ -78,74 +93,27 @@ const socials = [
   { label: 'OpenPGP', href: '#', icon: openPgpIcon },
 ]
 
-// 文章卡片数据：season 是法国共和历月份名（mono 小标签），
-// seed 决定 InkArt 渲染哪一种水墨纹路。pinned 文章会在卡片右下角加 ★。
-const posts = ref([
-  {
-    id: 1,
-    season: 'VENDÉMIAIRE',
-    title: '查戈斯群岛与 .io 的命运',
-    author: 'Youren',
-    summary: '献与被遗忘者。',
-    date: '2025-08-06',
-    readingTime: '22 min read',
-    pinned: true,
-    seed: 0,
-  },
-  {
-    id: 2,
-    season: 'PLUVIÔSE',
-    title: 'Hello, Mitra',
-    author: 'Youren',
-    summary: '契约既成……',
-    date: '2026-04-28',
-    readingTime: '18 min read',
-    seed: 1,
-  },
-  {
-    id: 3,
-    season: 'PLUVIÔSE',
-    title: 'Hello, Stalwart',
-    author: 'Youren',
-    summary: 'Eccentric, or toxic?',
-    date: '2026-04-26',
-    readingTime: '19 min read',
-    seed: 2,
-  },
-  {
-    id: 4,
-    season: 'VENDÉMIAIRE',
-    title: '「环节」',
-    author: 'Youren',
-    summary: '来点历史小文章喵。',
-    date: '2026-03-29',
-    readingTime: '34 min read',
-    seed: 1,
-  },
-  {
-    id: 5,
-    season: 'PLUVIÔSE',
-    title: '局部吸引子',
-    author: 'Youren',
-    summary: '一台 MacBook，可以用十年吗？',
-    date: '2026-03-17',
-    readingTime: '24 min read',
-    seed: 2,
-  },
-  {
-    id: 6,
-    season: 'FLORÉAL',
-    title: '岁时录（二十四）',
-    author: 'Youren',
-    summary: '如若不知道该写什么，就写周报好了。',
-    date: '2026-03-13',
-    readingTime: '20 min read',
-    seed: 0,
-  },
-])
+// 首页只展示最新 6 篇,长列表去 /writing。
+// useFetch 在 SSR + CSR 下都能跑,失败时 data 为 null,默认空列表。
+const { data } = await useArticleList({ pageSize: 6 })
 
-// 首页只展示最新 6 篇，长列表请去 /writing。
-const postList = computed(() => posts.value.slice(0, 6))
+const postList = computed(() => {
+  return (data.value?.data ?? []).map((a) => ({
+    id: a.id,
+    slug: a.slug,
+    card: {
+      id: a.id,
+      season: frenchSeason(a.publishedAt),
+      title: a.title,
+      author: 'Youren',
+      summary: a.summary ?? '',
+      date: shortDate(a.publishedAt),
+      // 列表里没有 content,先粗估"3 min read";详情页才有真正字数
+      readingTime: '3 min read',
+      seed: seedFromId(a.id),
+    },
+  }))
+})
 </script>
 
 <style scoped>

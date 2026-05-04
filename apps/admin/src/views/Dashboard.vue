@@ -1,51 +1,46 @@
 <template>
   <!--
-    /dashboard —— v3 AdminDashV3 仪表盘：
-      · 顶部欢迎卡：mono kicker + 短分隔线 + 大标题
-      · 4 列指标卡（mono caption + 大数字 + accent 增量）
-      · 下面分两栏：左 = 近 7 天活动；右 = AI 收件箱预览
+    /dashboard —— 仪表盘(V1-07 接真 API):
+    · 顶部欢迎卡 + 草稿待办数
+    · 4 个核心指标:已发布 / 草稿 / 分类 / 标签
+    · 下面分两栏:近期文章 + AI 收件箱占位(V4 接)
+    AI 收件箱当前是占位卡,V4 起接 ai-service 草稿队列。
   -->
   <AdminShell active="dashboard">
     <div class="stack">
       <header class="card hero">
-        <div class="mono kicker">GOOD MORNING</div>
+        <div class="mono kicker">{{ greeting }}</div>
         <div class="kicker-rule" />
-        <h1 class="cn hero-title">有 {{ inbox.length }} 篇 AI 草稿在等你。</h1>
+        <h1 class="cn hero-title">{{ heroLine }}</h1>
       </header>
 
       <div class="metrics">
         <div v-for="m in metrics" :key="m.label" class="card metric">
           <div class="mono metric-label">{{ m.label.toUpperCase() }}</div>
           <div class="serif metric-value">{{ m.value }}</div>
-          <div class="metric-delta">{{ m.delta }}</div>
+          <div class="metric-delta">{{ m.hint }}</div>
         </div>
       </div>
 
       <div class="split">
         <section class="card">
-          <div class="mono section-kicker">RECENT ACTIVITY · 7 DAYS</div>
-          <div
-            v-for="(row, i) in activities"
-            :key="i"
-            class="row"
-            :class="{ first: i === 0 }"
-          >
-            <span
-              class="mono row-action"
-              :class="{ accent: row.action === 'ai draft' }"
-            >{{ row.action.toUpperCase() }}</span>
-            <span class="cn row-title">{{ row.title }}</span>
-            <span class="mono row-time">{{ row.time }}</span>
+          <div class="mono section-kicker">RECENT ARTICLES</div>
+          <div v-for="(a, i) in recent" :key="a.id" class="row" :class="{ first: i === 0 }">
+            <span class="mono row-action" :class="{ accent: a.status === 'PUBLISHED' }">{{ a.status }}</span>
+            <RouterLink :to="`/editor/${a.id}`" class="cn row-title">{{ a.title }}</RouterLink>
+            <span class="mono row-time">{{ formatDate(a.updatedAt) }}</span>
+          </div>
+          <div v-if="recent.length === 0" class="row first empty">
+            <span class="mono">还没有文章。<RouterLink to="/editor">新建一篇 →</RouterLink></span>
           </div>
         </section>
 
         <section class="card">
-          <div class="mono section-kicker accent">✦ AI INBOX · {{ inbox.length }} PENDING</div>
-          <div v-for="(d, i) in inbox" :key="i" class="inbox-row" :class="{ first: i === 0 }">
-            <div class="cn inbox-title">{{ d.title }}</div>
-            <div class="mono inbox-meta">{{ d.meta }}</div>
+          <div class="mono section-kicker accent">✦ AI INBOX · COMING IN V4</div>
+          <div class="placeholder">
+            <p class="cn">AI 草稿生产链路在 V4 接入。</p>
+            <p class="hint mono">FLUTTER → NESTJS → AI SERVICE → DRAFT</p>
           </div>
-          <RouterLink to="/inbox" class="inbox-cta">查看全部 →</RouterLink>
         </section>
       </div>
     </div>
@@ -53,175 +48,97 @@
 </template>
 
 <script setup lang="ts">
+import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import AdminShell from '../components/AdminShell.vue'
+import { listArticles, type ArticleSummary } from '../api/articles'
+import { listCategories } from '../api/categories'
+import { listTags } from '../api/tags'
+import { useAuthStore } from '../stores/auth'
 
-// 4 个指标卡。delta 走 accent 色，所以正负都用同一种色调（设计一致性优先）。
-const metrics = [
-  { label: '已发布', value: '47', delta: '+3 本月' },
-  { label: '草稿', value: '12', delta: '4 篇 AI' },
-  { label: '30 天访问', value: '24,891', delta: '+18%' },
-  { label: '订阅者', value: '1,204', delta: '+42 本周' },
-]
+const auth = useAuthStore()
+const greeting = computed(() => {
+  const h = new Date().getHours()
+  if (h < 6) return 'GOOD NIGHT'
+  if (h < 12) return 'GOOD MORNING'
+  if (h < 18) return 'GOOD AFTERNOON'
+  return 'GOOD EVENING'
+})
 
-// 近期活动；action 走 mono 上标，title 走 cn 大字，time 走 mono 右对齐。
-const activities = [
-  { action: 'published', title: 'Hello, Mitra', time: '2 小时前' },
-  { action: 'ai draft', title: '关于 agent 编排的笔记', time: '4 小时前' },
-  { action: 'edited', title: '查戈斯群岛与 .io', time: '昨天' },
-  { action: 'reviewed', title: 'prisma × nestjs', time: '2 天前' },
-]
+const draftsTotal = ref(0)
+const publishedTotal = ref(0)
+const categoriesTotal = ref(0)
+const tagsTotal = ref(0)
+const recent = ref<ArticleSummary[]>([])
 
-// AI 收件箱预览，与 /inbox 共享数据结构（后续抽到 store）。
-const inbox = [
-  { title: '上线一个小 AI 功能的笔记', meta: 'flutter · 12m' },
-  { title: '关于 prisma migration 的三件事', meta: 'prompt · 14m' },
-  { title: '为什么写作总在前一晚', meta: 'flutter · 38m' },
-  { title: 'monorepo 自律的小记', meta: 'prompt · 1h' },
-]
+const heroLine = computed(() => {
+  if (draftsTotal.value === 0) return `欢迎,${auth.user?.username ?? 'admin'}。准备好开始写了吗?`
+  return `有 ${draftsTotal.value} 篇草稿在等你。`
+})
+
+const metrics = computed(() => [
+  { label: '已发布', value: publishedTotal.value, hint: `${draftsTotal.value} 篇草稿` },
+  { label: '草稿', value: draftsTotal.value, hint: 'V4 起含 AI 生成' },
+  { label: '分类', value: categoriesTotal.value, hint: '后台管理' },
+  { label: '标签', value: tagsTotal.value, hint: '复用率高' },
+])
+
+onMounted(async () => {
+  try {
+    const [drafts, pub, recentRes, cats, tags] = await Promise.all([
+      listArticles({ status: 'DRAFT', pageSize: 1 }),
+      listArticles({ status: 'PUBLISHED', pageSize: 1 }),
+      listArticles({ pageSize: 5 }),
+      listCategories(),
+      listTags(),
+    ])
+    draftsTotal.value = drafts.meta.total
+    publishedTotal.value = pub.meta.total
+    recent.value = recentRes.data
+    categoriesTotal.value = cats.length
+    tagsTotal.value = tags.length
+  } catch {
+    /* dashboard 失败不阻塞页面 */
+  }
+})
+
+function formatDate(iso: string) {
+  const d = new Date(iso)
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+}
 </script>
 
 <style scoped>
 .stack { display: flex; flex-direction: column; gap: 20px; }
-
-.card {
-  background: var(--card);
-  border-radius: 16px;
-  box-shadow: var(--shadow);
-}
+.card { background: var(--card); border-radius: 16px; box-shadow: var(--shadow); }
 
 .hero { padding: 32px 36px; }
+.kicker { font-size: 10px; letter-spacing: 0.18em; color: var(--ink-3); }
+.kicker-rule { width: 18px; height: 1px; background: var(--ink-3); margin: 4px 0 14px; }
+.hero-title { font-size: 30px; font-weight: 600; margin: 0; color: var(--ink); }
 
-.kicker {
-  font-size: 10px;
-  letter-spacing: 0.18em;
-  color: var(--ink-3);
-}
+.metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.metric { border-radius: 14px; padding: 20px 22px; }
+.metric-label { font-size: 9px; letter-spacing: 0.16em; color: var(--ink-3); margin-bottom: 8px; }
+.metric-value { font-size: 32px; font-weight: 600; color: var(--ink); letter-spacing: -0.02em; }
+.metric-delta { font-size: 11px; color: var(--accent); margin-top: 4px; }
 
-.kicker-rule {
-  width: 18px;
-  height: 1px;
-  background: var(--ink-3);
-  margin: 4px 0 14px;
-}
-
-.hero-title {
-  font-size: 30px;
-  font-weight: 600;
-  margin: 0;
-  color: var(--ink);
-}
-
-.metrics {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-}
-
-.metric {
-  border-radius: 14px;
-  padding: 20px 22px;
-}
-
-.metric-label {
-  font-size: 9px;
-  letter-spacing: 0.16em;
-  color: var(--ink-3);
-  margin-bottom: 8px;
-}
-
-.metric-value {
-  font-size: 32px;
-  font-weight: 600;
-  color: var(--ink);
-  letter-spacing: -0.02em;
-}
-
-.metric-delta {
-  font-size: 11px;
-  color: var(--accent);
-  margin-top: 4px;
-}
-
-.split {
-  display: grid;
-  grid-template-columns: 1.4fr 1fr;
-  gap: 16px;
-}
-
-.section-kicker {
-  font-size: 10px;
-  letter-spacing: 0.16em;
-  color: var(--ink-3);
-  margin-bottom: 14px;
-  padding: 24px 28px 0;
-}
+.split { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; }
+.section-kicker { font-size: 10px; letter-spacing: 0.16em; color: var(--ink-3); margin-bottom: 14px; padding: 24px 28px 0; }
 .section-kicker.accent { color: var(--accent); padding: 24px 24px 0; }
 
-.row {
-  display: grid;
-  grid-template-columns: 90px 1fr 70px;
-  gap: 14px;
-  padding: 12px 28px;
-  border-top: 1px solid var(--rule);
-  align-items: baseline;
-}
+.row { display: grid; grid-template-columns: 90px 1fr 90px; gap: 14px; padding: 12px 28px; border-top: 1px solid var(--rule); align-items: baseline; }
 .row.first { border-top: 0; }
-
-.row-action {
-  font-size: 10px;
-  letter-spacing: 0.1em;
-  color: var(--ink-3);
-}
+.row.empty { padding-bottom: 24px; color: var(--ink-3); }
+.row-action { font-size: 10px; letter-spacing: 0.1em; color: var(--ink-3); }
 .row-action.accent { color: var(--accent); }
+.row-title { font-size: 14px; font-weight: 500; color: var(--ink); text-decoration: none; }
+.row-title:hover { color: var(--accent); }
+.row-time { font-size: 10px; color: var(--ink-3); text-align: right; }
 
-.row-title {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--ink);
-}
+.placeholder { padding: 0 24px 24px; }
+.placeholder .cn { font-size: 13px; color: var(--ink-2); margin-top: 8px; }
+.placeholder .hint { font-size: 10px; color: var(--ink-3); margin-top: 8px; letter-spacing: 0.14em; }
 
-.row-time {
-  font-size: 10px;
-  color: var(--ink-3);
-  text-align: right;
-}
-
-.inbox-row {
-  padding: 12px 24px;
-  border-top: 1px solid var(--rule);
-}
-.inbox-row.first { border-top: 0; }
-
-.inbox-title {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--ink);
-}
-
-.inbox-meta {
-  font-size: 10px;
-  color: var(--ink-3);
-  margin-top: 2px;
-}
-
-.inbox-cta {
-  display: block;
-  margin: 14px 24px 24px;
-  padding: 10px 0;
-  background: var(--bg);
-  border: 1px solid var(--rule);
-  border-radius: 10px;
-  font-size: 12px;
-  color: var(--ink-2);
-  text-align: center;
-  text-decoration: none;
-  cursor: pointer;
-}
-.inbox-cta:hover { color: var(--ink); }
-
-@media (max-width: 1100px) {
-  .metrics { grid-template-columns: repeat(2, 1fr); }
-  .split { grid-template-columns: 1fr; }
-}
+@media (max-width: 1100px) { .metrics { grid-template-columns: repeat(2, 1fr); } .split { grid-template-columns: 1fr; } }
 </style>

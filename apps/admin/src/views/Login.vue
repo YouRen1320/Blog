@@ -1,14 +1,15 @@
 <template>
   <!--
-    /login —— v3 设计的 AdminLoginV3：
-    单卡居中表单，斜体 Y logo，欢迎语下面提示「有 N 篇 AI 草稿在等你」。
-    提交目前只是跳转 /dashboard；接 NestJS 时换成 fetch /api/auth/login。
+    /login —— 真实接入 NestJS:
+    - 调 useAuthStore().login(email, password) 拿 token 并存 store
+    - 出错时显示后端返回的 message(401 邮箱密码错 / 400 字段不合法)
+    - 成功后跳转到 ?redirect 指定的页面或默认 /dashboard
   -->
   <div class="page">
     <form class="card" @submit.prevent="onSubmit">
       <div class="logo serif-disp">Y</div>
       <h1 class="cn title">欢迎回来</h1>
-      <p class="hint">有 4 篇 AI 草稿在等你。</p>
+      <p class="hint">{{ subtitle }}</p>
 
       <label class="mono label" for="login-email">EMAIL</label>
       <input
@@ -32,7 +33,11 @@
         required
       />
 
-      <button class="submit" type="submit">登入 →</button>
+      <p v-if="error" class="error">{{ error }}</p>
+
+      <button class="submit" :disabled="submitting" type="submit">
+        {{ submitting ? '登入中…' : '登入 →' }}
+      </button>
 
       <div class="mono foot">
         <a class="forgot">忘记密码</a>
@@ -43,18 +48,35 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
 
 const router = useRouter()
+const route = useRoute()
+const auth = useAuthStore()
 
-// 表单字段。提交前由后端校验。
 const email = ref('')
 const password = ref('')
+const error = ref('')
+const submitting = ref(false)
 
-function onSubmit() {
-  // TODO: 接入 NestJS auth：POST /api/auth/login，存 token 后再 push。
-  router.push('/dashboard')
+const subtitle = computed(() => (auth.user ? `又见面了,${auth.user.username}` : '使用管理员账号登入'))
+
+async function onSubmit() {
+  error.value = ''
+  submitting.value = true
+  try {
+    await auth.login(email.value, password.value)
+    const redirect = (route.query.redirect as string) || '/dashboard'
+    router.replace(redirect)
+  } catch (e: any) {
+    // 后端 message 可能是字符串或字符串数组(class-validator 返回数组)
+    const msg = e?.response?.data?.message
+    error.value = Array.isArray(msg) ? msg.join('; ') : msg || '登录失败,请稍后再试'
+  } finally {
+    submitting.value = false
+  }
 }
 </script>
 
@@ -121,7 +143,14 @@ function onSubmit() {
 .input:focus { border-color: var(--accent); }
 
 .input + .label { margin-top: 0; }
-.input:last-of-type { margin-bottom: 24px; }
+.input:last-of-type { margin-bottom: 16px; }
+
+.error {
+  font-size: 12px;
+  color: #c0392b;
+  margin: 0 0 12px;
+  text-align: center;
+}
 
 .submit {
   width: 100%;
@@ -134,7 +163,8 @@ function onSubmit() {
   font-weight: 500;
   cursor: pointer;
 }
-.submit:hover { opacity: 0.92; }
+.submit:hover:not(:disabled) { opacity: 0.92; }
+.submit:disabled { opacity: 0.5; cursor: progress; }
 
 .foot {
   margin-top: 18px;

@@ -47,7 +47,8 @@ import InkArt from './InkArt.vue'
 // Card data shape. `seed` selects which InkArt variant paints the cover;
 // `season` is the French Republican Calendar month label shown as a caption.
 interface PostCard {
-  id: number
+  // 数据库 cuid 是 string;v3 mock 时是 number。这里用 union 兼容两种。
+  id: string | number
   season: string
   title: string
   author: string
