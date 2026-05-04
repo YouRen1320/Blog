@@ -7,23 +7,17 @@
  * 副作用：`dark` 改变时会修改 `document.documentElement.classList`；
  *   仅在客户端读写 `localStorage`。
  *
- * 说明：用 vue 的 ref 做模块级单例，避免依赖 Nuxt auto-import 类型。
+ * 用 Nuxt 的 useState 让 SSR 和 client 共享同一份状态，避免水合闪烁。
  */
-import { ref } from 'vue'
-
 const STORAGE_KEY = 'theme'
 
-// 用 typeof window 判断而非 import.meta.client，绕开 Nuxt 类型未就绪时的报错。
-const isClient = typeof window !== 'undefined'
-
-// 模块级单例 ref：所有组件共享同一份状态。
-const dark = ref<boolean>(false)
-let hydrated = false
-
 export function useTheme() {
+  const dark = useState<boolean>('theme:dark', () => false)
+  const hydrated = useState<boolean>('theme:hydrated', () => false)
+
   // 仅客户端首次调用时从 localStorage 同步一次。
-  if (isClient && !hydrated) {
-    hydrated = true
+  if (import.meta.client && !hydrated.value) {
+    hydrated.value = true
     const saved = window.localStorage.getItem(STORAGE_KEY)
     if (saved === 'dark') {
       dark.value = true
@@ -33,7 +27,7 @@ export function useTheme() {
 
   function apply(next: boolean) {
     dark.value = next
-    if (isClient) {
+    if (import.meta.client) {
       document.documentElement.classList.toggle('dark', next)
       window.localStorage.setItem(STORAGE_KEY, next ? 'dark' : 'light')
     }

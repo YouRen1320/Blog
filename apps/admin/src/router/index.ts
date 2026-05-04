@@ -8,6 +8,9 @@ const routes = [
   { path: '/dashboard', name: 'dashboard', component: () => import('../views/Dashboard.vue') },
   { path: '/editor', name: 'editor', component: () => import('../views/Editor.vue') },
   { path: '/inbox', name: 'inbox', component: () => import('../views/AIInbox.vue') },
+  { path: '/tags', name: 'tags', component: () => import('../views/Tags.vue') },
+  { path: '/categories', name: 'categories', component: () => import('../views/Categories.vue') },
+  { path: '/settings', name: 'settings', component: () => import('../views/Settings.vue') },
 ]
 
 export default createRouter({

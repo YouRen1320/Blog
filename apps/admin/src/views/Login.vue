@@ -10,11 +10,27 @@
       <h1 class="cn title">欢迎回来</h1>
       <p class="hint">有 4 篇 AI 草稿在等你。</p>
 
-      <label class="mono label">EMAIL</label>
-      <input v-model="email" class="input" type="email" autocomplete="email" />
+      <label class="mono label" for="login-email">EMAIL</label>
+      <input
+        id="login-email"
+        v-model="email"
+        class="input"
+        type="email"
+        autocomplete="email"
+        placeholder="you@youren.dev"
+        required
+      />
 
-      <label class="mono label">PASSWORD</label>
-      <input v-model="password" class="input" type="password" autocomplete="current-password" />
+      <label class="mono label" for="login-password">PASSWORD</label>
+      <input
+        id="login-password"
+        v-model="password"
+        class="input"
+        type="password"
+        autocomplete="current-password"
+        placeholder="••••••••"
+        required
+      />
 
       <button class="submit" type="submit">登入 →</button>
 
@@ -32,9 +48,9 @@ import { useRouter } from 'vue-router'
 
 const router = useRouter()
 
-// 表单字段；默认值仅做演示，真正接入认证后请去掉默认值。
-const email = ref('admin@youren.dev')
-const password = ref('••••••••••')
+// 表单字段。提交前由后端校验。
+const email = ref('')
+const password = ref('')
 
 function onSubmit() {
   // TODO: 接入 NestJS auth：POST /api/auth/login，存 token 后再 push。

@@ -66,9 +66,9 @@ const items: NavItem[] = [
   { key: 'dashboard', icon: '○', label: 'Index', to: '/dashboard' },
   { key: 'writing', icon: '✎', label: 'Writing', to: '/editor' },
   { key: 'drafts', icon: '✦', label: 'AI Drafts', to: '/inbox', badge: '4' },
-  { key: 'tags', icon: '#', label: 'Tags', to: '/dashboard' },
-  { key: 'cats', icon: '◐', label: 'Categories', to: '/dashboard' },
-  { key: 'settings', icon: '⚙', label: 'Settings', to: '/dashboard' },
+  { key: 'tags', icon: '#', label: 'Tags', to: '/tags' },
+  { key: 'cats', icon: '◐', label: 'Categories', to: '/categories' },
+  { key: 'settings', icon: '⚙', label: 'Settings', to: '/settings' },
 ]
 </script>
 
