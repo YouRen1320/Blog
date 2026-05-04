@@ -3,9 +3,6 @@
   "private": true,
   "packageManager": "pnpm@10.18.0",
   "scripts": {
-    "dev:web": "pnpm --filter web dev",
-    "dev:api": "pnpm --filter api dev",
-    "dev": "pnpm -r --parallel dev",
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
     "db:logs": "docker compose logs -f --tail=100"

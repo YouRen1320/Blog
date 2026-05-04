@@ -1,5 +1,56 @@
 @import "tailwindcss";
-body {
-  background: #f8f8f5;
-  color: #516068;
+
+/* === v3 设计变量 —— chlo.is 风格：暖灰底、浮起卡片、药丸导航 ===
+   颜色与字体来自设计包中的 tokens-v3.css；
+   暗色模式通过 useTheme() 给 <html> 切换 `.dark` 类来生效。 */
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Source+Serif+4:opsz,wght@8..60,300;8..60,400;8..60,500;8..60,600&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&family=Noto+Serif+SC:wght@400;500;600&display=swap');
+
+:root {
+  --serif: 'Source Serif 4', 'Noto Serif SC', Georgia, serif;
+  --serif-disp: 'Cormorant Garamond', 'Source Serif 4', serif;
+  --sans: 'Inter', -apple-system, system-ui, 'PingFang SC', sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, monospace;
+  --cn: 'Noto Serif SC', 'Source Serif 4', serif;
+
+  --bg: #F4F2EE;
+  --card: #FBFAF7;
+  --ink: #1F2421;
+  --ink-2: #4F5650;
+  --ink-3: #8A8F89;
+  --ink-4: #B5B8B2;
+  --rule: #E4E2DC;
+  --accent: #6B7A5A; /* 苔藓绿，呼应 chlo.is 斜体 'C' logo 的色调 */
+  --shadow: 0 1px 2px rgba(20,20,15,0.04), 0 8px 24px rgba(20,20,15,0.04);
 }
+
+.dark {
+  --bg: #15181A;
+  --card: #1C2022;
+  --ink: #E8E6DF;
+  --ink-2: #B0B3AC;
+  --ink-3: #71746E;
+  --ink-4: #4A4D49;
+  --rule: #262A2C;
+  --accent: #9DAE85;
+  --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.2);
+}
+
+html {
+  scroll-behavior: smooth;
+  background: var(--bg);
+}
+
+body {
+  margin: 0;
+  font-family: var(--sans);
+  color: var(--ink);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.serif { font-family: var(--serif); }
+.serif-disp { font-family: var(--serif-disp); }
+.cn { font-family: var(--cn); }
+.mono { font-family: var(--mono); }
+.sans { font-family: var(--sans); }

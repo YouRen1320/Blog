@@ -1,30 +1,52 @@
 <template>
-    <footer class="border-t border-gray-200 px-6 py-8 text-sm text-gray-500 mt-8">
-        <div class="m-auto flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-            <div class="space-y-4">
-                <div class="flex flex-wrap items-center gap-2">
-                    <span class="font-mono text-gray-500">#</span>
-                    <span class="font-mono">Hash Digest: b0744b3</span>
-                    <span>•</span>
-                    <span>△= 共 473582 字，写完一本玛格丽特·米切尔的《飘》了！</span>
-                </div>
-
-                <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
-                    <span>© 2026 YouRen</span>
-                    <a href="#" class="transition hover:text-gray-700">Powered by Hugo</a>
-                    <a href="#" class="transition hover:text-gray-700">Theme Hermeneutics</a>
-                </div>
-            </div>
-
-            <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
-                <a href="#" class="transition hover:text-gray-700">← IndieWebRing</a>
-                <span class="text-gray-300">|</span>
-                <a href="#" class="transition hover:text-gray-700">开往</a>
-                <span class="text-gray-300">|</span>
-                <a href="#" class="transition hover:text-gray-700">萌 ICP 备 1234456 号</a>
-            </div>
-        </div>
-    </footer>
+  <!--
+    v3 footer: a single thin row of mono microcopy split across both edges.
+    Mirrors the design's `FooterV3` component — no visible top border, just
+    breathing room above and the muted ink-3 token for text.
+  -->
+  <footer class="app-footer mono">
+    <div class="left">
+      <span>© {{ year }} YouRen</span>
+      <span>Powered by Nuxt</span>
+      <span>Theme — Hermeneutics</span>
+    </div>
+    <div class="right">
+      <a href="#" class="link">IndieWebRing →</a>
+      <a href="#" class="link">开往</a>
+      <span>萌 ICP 备 20253545 号</span>
+    </div>
+  </footer>
 </template>
 
-<script setup lang="ts"></script>
+<script setup lang="ts">
+// Render year client-side as well as during SSR so it stays in sync without
+// importing dayjs just for one number.
+const year = new Date().getFullYear()
+</script>
+
+<style scoped>
+.app-footer {
+  max-width: 1100px;
+  margin: 60px auto 0;
+  padding: 24px 32px;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--ink-3);
+}
+
+.left, .right {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+}
+
+.link {
+  color: var(--ink-3);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+.link:hover { color: var(--ink); }
+</style>

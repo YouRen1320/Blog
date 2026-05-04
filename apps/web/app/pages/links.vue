@@ -1,33 +1,33 @@
 <template>
     <section class="mx-auto max-w-[720px] px-6 py-14 md:py-20">
-        <article class="text-[16px] leading-[1.95] text-[#5c6a71]">
+        <article class="text-[16px] leading-[1.95] text-[var(--ink-2)]">
             <header>
-                <h1 class="text-[40px] font-semibold tracking-tight text-[#4d5a61] md:text-[46px]">
+                <h1 class="text-[40px] font-semibold tracking-tight text-[var(--ink)] md:text-[46px]">
                     Links
                 </h1>
-                <p class="mt-2 text-[14px] leading-7 text-[#8f8377]">
+                <p class="mt-2 text-[14px] leading-7 text-[var(--ink-3)]">
                     一些我持续关注、愿意推荐，或者想认真保存下来的站点与链接。
                 </p>
             </header>
 
             <div class="mt-14 space-y-16 md:space-y-20">
                 <section v-for="group in groups" :key="group.title">
-                    <h2 class="text-[25px] font-semibold tracking-tight text-[#4d5a61]">
+                    <h2 class="text-[25px] font-semibold tracking-tight text-[var(--ink)]">
                         {{ group.title }}
                     </h2>
 
                     <div class="mt-7 space-y-8">
                         <article v-for="item in group.items" :key="item.name">
                             <a :href="item.href" target="_blank" rel="noreferrer"
-                                class="inline-block text-[22px] font-semibold tracking-tight text-[#556269] transition hover:text-[#404c53] hover:underline underline-offset-4">
+                                class="inline-block text-[22px] font-semibold tracking-tight text-[var(--ink)] transition hover:text-[var(--ink)] hover:underline underline-offset-4">
                                 {{ item.name }}
                             </a>
 
-                            <p class="mt-1 text-[13px] text-[#8f8377]">
+                            <p class="mt-1 text-[13px] text-[var(--ink-3)]">
                                 {{ item.href }}
                             </p>
 
-                            <p class="mt-2 text-[15px] leading-8 text-[#617076]">
+                            <p class="mt-2 text-[15px] leading-8 text-[var(--ink-2)]">
                                 {{ item.description }}
                             </p>
                         </article>

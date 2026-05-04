@@ -1,138 +1,213 @@
 <template>
-    <section class="mx-auto max-w-[720px] px-6 py-14 md:py-20">
-        <article class="text-[16px] leading-[1.95] text-[#5c6a71]">
-            <header>
-                <h1 class="text-[42px] font-semibold tracking-tight text-[#4d5a61] md:text-[48px]">
-                    如今
-                </h1>
-                <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-[#8f8377]">
-                    <span>3 min read</span>
-                    <span>·</span>
-                    <span>约 1.2k 字</span>
-                    <span>·</span>
-                    <span>2026-04-02 更新</span>
-                </div>
-            </header>
+  <!--
+    /now —— v3 设计的 "如今" 页：
+    单列 720px 阅读栏，顶部为标题 + mono 元数据条；
+    紧接一个浮起的目录卡（折叠交互后续接），随后是 chlo.is mood 的正文：
+      · 普通段落用 cn (Noto Serif SC) + 1.85 行高
+      · 内联引用 borderLeft 用 --rule
+      · 大段引述块用 card 浮起 + serif 字体
+    所有颜色走 token，自动跟随暗色模式。
+  -->
+  <article class="page">
+    <header class="head">
+      <h1 class="cn title">如今</h1>
+      <div class="mono meta">
+        <span>◷ 2 分钟阅读</span>
+        <span>≣ 851 字</span>
+        <span>✎ 更新于 2026-04-02</span>
+      </div>
+    </header>
 
-            <section class="mt-9 border-l-2 border-[#e8dfd2] pl-5">
-                <h2 class="text-[18px] font-medium text-[#5a666d]">目录</h2>
-                <nav class="mt-3 text-[15px] text-[#67747b]">
-                    <ul class="space-y-2">
-                        <li v-for="section in sections" :key="section.id">
-                            <a :href="`#${section.id}`" class="transition hover:text-[#49565d] hover:underline underline-offset-4">
-                                {{ section.title }}
-                            </a>
-                            <ul v-if="section.children" class="mt-2 space-y-1.5 pl-5 text-[14px] text-[#8b7d70]">
-                                <li v-for="child in section.children" :key="child.id">
-                                    <a :href="`#${child.id}`" class="transition hover:text-[#49565d] hover:underline underline-offset-4">
-                                        {{ child.title }}
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
-                    </ul>
-                </nav>
-            </section>
+    <!-- 目录卡（视觉与交互简化版） -->
+    <button class="toc" type="button" @click="tocOpen = !tocOpen">
+      <span class="cn toc-label">≡ 目录</span>
+      <span class="toc-chevron" :class="{ open: tocOpen }">⌄</span>
+    </button>
+    <nav v-if="tocOpen" class="toc-list cn">
+      <a
+        v-for="section in sections"
+        :key="section.id"
+        :href="`#${section.id}`"
+        class="toc-link"
+      >
+        {{ section.title }}
+      </a>
+    </nav>
 
-            <div class="mt-11 space-y-12">
-                <section id="about-now" class="scroll-mt-24">
-                    <h2 class="text-[29px] font-semibold tracking-tight text-[#4d5a61]">有关 /now</h2>
-                    <div class="mt-4 space-y-5">
-                        <p>
-                            “Now page” 的概念来自 Derek Sivers 与 nownownow.com。它不是动态列表，也不适合记录所有零碎小事，而是用来说明：在这个阶段，我究竟在把时间和注意力放在哪里。
-                        </p>
-                        <blockquote class="border-l-2 border-[#e3dacf] pl-4 italic text-[#7d7267]">
-                            A now page is a page that tells you what this person is focused on at this point in their life.
-                        </blockquote>
-                        <p>
-                            因此，这一页会偏向生活与兴趣的总体状态，而不是过分细小的即时更新。如果只是一些短句、碎片和偶发念头，它们更适合留在别处，比如社交平台或更轻量的时间线里。
-                        </p>
-                    </div>
-                </section>
+    <div class="prose cn">
+      <p>这里是园子的「如今」页面，也称：</p>
+      <blockquote class="inline-quote serif-disp">
+        某只元素娘的精神状态信息公示板
+      </blockquote>
 
-                <section id="chlorine" class="scroll-mt-24">
-                    <h2 class="text-[29px] font-semibold tracking-tight text-[#4d5a61]">小氯</h2>
-                    <div class="mt-4 space-y-5">
-                        <p>
-                            我是 YouRen。写代码、写作、做一些与表达相关的东西，构成了我现在大部分稳定而重复的日常。
-                        </p>
-                        <p>
-                            我并不太擅长把自己定义成一个单一身份。更准确地说，我总在工程、叙述、审美与兴趣之间来回移动，然后在这些移动里慢慢找到一点属于自己的节奏。
-                        </p>
-                    </div>
-                </section>
+      <h2 id="about-now" class="section">有关 / now</h2>
+      <p>
+        这里原本有一段简短的 Now Page 的介绍，但小氯把它去掉了。它的名字本身和它的创始人
+        <a class="accent">Derek Sivers</a> 已经把事情讲得很明白了。
+      </p>
 
-                <section id="life" class="scroll-mt-24">
-                    <h2 class="text-[29px] font-semibold tracking-tight text-[#4d5a61]">生活概况</h2>
+      <blockquote class="card-quote serif">
+        So a website with a link that says "now" goes to a page that tells you what
+        this person is focused on at this point in their life. For short, we call it
+        a "now page".<br><br>
+        [...]<br><br>
+        Think of <strong>what you'd tell a friend you hadn't seen in a year.</strong>
+        <br><br>
+        <em class="accent">NowNowNow</em>
+      </blockquote>
 
-                    <div class="mt-6 space-y-10">
-                        <section id="research" class="scroll-mt-24">
-                            <h3 class="text-[22px] font-semibold text-[#56646a]">预研</h3>
-                            <div class="mt-3 space-y-4">
-                                <p>
-                                    最近有不少精力放在预研上。更准确地说，是为接下来的研究方向做准备：读论文、记问题、和前辈交流，再慢慢判断什么值得继续投入。
-                                </p>
-                                <p>
-                                    这个过程并不总能立刻得到结果，但它正在持续改变我看待技术、方法和人与系统关系的方式，也影响着我接下来想继续读什么、写什么。
-                                </p>
-                            </div>
-                        </section>
+      <p>
+        所以，如您所见，我并不会在这里讲什么具体的、微小的动态。如果您希望听碎碎念，
+        可以去 <a class="accent">Fediverse</a> 看热闹。
+      </p>
 
-                        <section id="writing" class="scroll-mt-24">
-                            <h3 class="text-[22px] font-semibold text-[#56646a]">乱写</h3>
-                            <div class="mt-3 space-y-4">
-                                <p>
-                                    最近也重新恢复了一点写作热情，所以开始更认真地维护这个博客。把一些会在脑海里迅速散掉的东西写下来，本身就很像在替自己做整理。
-                                </p>
-                                <p>
-                                    我想继续写，不只是想留下内容，也是因为写作会逼我重新组织经验、重新理解读到的材料。技术写作和非技术写作，我都想慢慢捡回来。
-                                </p>
-                            </div>
-                        </section>
+      <h2 id="bacterium" class="section">菌落</h2>
+      <p>
+        最近我刷 Fediverse 的强度异常高，闲来无事就跑到 TL 上和老友们 Connect deep, grow wild.
+        大概社交媒体的价值就在于此吧。
+      </p>
 
-                        <section id="community" class="scroll-mt-24">
-                            <h3 class="text-[22px] font-semibold text-[#56646a]">菌落</h3>
-                            <div class="mt-3 space-y-4">
-                                <p>
-                                    我依然把很多注意力放在人与人的连接上。最近尤其喜欢那种比较慢、比较轻、没有太强算法牵引的交流方式：能说话，能旁观，也能只是安静地看见彼此的存在。
-                                </p>
-                                <p>
-                                    这种连接感未必能直接转化成某种产出，但它会让我更清楚自己为什么还想继续表达、继续写、继续维护一个属于自己的小站。
-                                </p>
-                            </div>
-                        </section>
+      <h2 id="reading" class="section">在读</h2>
+      <p>
+        正在读一些不太相关的书：和分布式系统有关的论文、一本 19 世纪的小说、几篇关于「占地」与
+        城市边界的随笔。它们之间没有线索，但放在一起看反而让脑子安静下来。
+      </p>
 
-                        <section id="drawing" class="scroll-mt-24">
-                            <h3 class="text-[22px] font-semibold text-[#56646a]">想学绘画</h3>
-                            <div class="mt-3 space-y-4">
-                                <p>
-                                    另外一个反复出现的念头，是想慢慢把绘画重新拾起来。不是为了立刻变得专业，而是希望自己能拥有一种更直接、也更私人的视觉表达方式。
-                                </p>
-                                <p>
-                                    现在的目标很简单：先从头像、小图和配色练习开始。哪怕进展很慢，只要最后能做出一些真正属于自己的东西，我就会很高兴。
-                                </p>
-                            </div>
-                        </section>
-                    </div>
-                </section>
-            </div>
-        </article>
-    </section>
+      <h2 id="building" class="section">在做</h2>
+      <p>
+        慢慢搭这个站点。它不像产品，更像是一个能放心走久的地方——每次写完一篇，就像把石头压住一页风。
+      </p>
+    </div>
+  </article>
 </template>
 
 <script setup lang="ts">
+// 目录展开状态。点击目录卡时切换。
+const tocOpen = ref(true)
+
+// 目录数据：与正文中 h2 的 id 一一对应。
 const sections = [
-    { id: 'about-now', title: '有关 /now' },
-    { id: 'chlorine', title: '小氯' },
-    {
-        id: 'life',
-        title: '生活概况',
-        children: [
-            { id: 'research', title: '预研' },
-            { id: 'writing', title: '乱写' },
-            { id: 'community', title: '菌落' },
-            { id: 'drawing', title: '想学绘画' },
-        ],
-    },
+  { id: 'about-now', title: '有关 / now' },
+  { id: 'bacterium', title: '菌落' },
+  { id: 'reading', title: '在读' },
+  { id: 'building', title: '在做' },
 ]
 </script>
+
+<style scoped>
+.page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 40px 32px 0;
+}
+
+.head { margin-bottom: 28px; }
+
+.title {
+  font-size: 32px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--ink);
+}
+
+.meta {
+  font-size: 11px;
+  color: var(--ink-3);
+  margin-top: 12px;
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.toc {
+  width: 100%;
+  background: var(--card);
+  border: 0;
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  padding: 14px 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  margin-bottom: 16px;
+  text-align: left;
+  color: inherit;
+}
+
+.toc-label {
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.toc-chevron {
+  color: var(--ink-3);
+  transition: transform 0.2s ease;
+}
+.toc-chevron.open { transform: rotate(180deg); }
+
+.toc-list {
+  background: var(--card);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  padding: 10px 18px 14px;
+  margin-bottom: 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.toc-link {
+  font-size: 14px;
+  color: var(--ink-2);
+  text-decoration: none;
+  padding: 4px 0;
+}
+.toc-link:hover { color: var(--accent); }
+
+.prose {
+  font-size: 16px;
+  line-height: 1.85;
+  color: var(--ink-2);
+}
+
+.prose p { margin: 0 0 18px; }
+
+.section {
+  font-size: 22px;
+  font-weight: 600;
+  margin-top: 40px;
+  margin-bottom: 14px;
+  color: var(--ink);
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 8px;
+  scroll-margin-top: 80px;
+}
+
+.inline-quote {
+  border-left: 2px solid var(--rule);
+  margin: 20px 0;
+  padding: 4px 16px;
+  color: var(--ink-3);
+  font-style: italic;
+  font-size: 16px;
+}
+
+.card-quote {
+  background: var(--card);
+  border-radius: 8px;
+  padding: 20px 24px;
+  margin: 24px 0;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--ink-2);
+  box-shadow: var(--shadow);
+}
+
+.accent {
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: none;
+}
+.accent:hover { text-decoration: underline; text-underline-offset: 3px; }
+</style>

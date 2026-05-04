@@ -1,33 +1,33 @@
 <template>
     <section class="mx-auto max-w-[720px] px-6 py-14 md:py-20">
-        <article class="text-[#5c6a71]">
+        <article class="text-[var(--ink-2)]">
             <header>
-                <h1 class="text-[40px] font-semibold tracking-tight text-[#4d5a61] md:text-[46px]">
+                <h1 class="text-[40px] font-semibold tracking-tight text-[var(--ink)] md:text-[46px]">
                     Notes
                 </h1>
-                <p class="mt-2 text-[14px] leading-7 text-[#8f8377]">
+                <p class="mt-2 text-[14px] leading-7 text-[var(--ink-3)]">
                     一些更短的记录、随笔和还没有长成正式文章的片段。
                 </p>
             </header>
 
             <div class="mt-14 space-y-16 md:space-y-20">
                 <section v-for="group in groupedNotes" :key="group.year">
-                    <h2 class="text-[25px] font-semibold tracking-tight text-[#4d5a61]">
+                    <h2 class="text-[25px] font-semibold tracking-tight text-[var(--ink)]">
                         {{ group.year }}
                     </h2>
 
                     <div class="mt-7 space-y-8">
                         <article v-for="note in group.items" :key="`${group.year}-${note.title}`">
                             <a :href="note.href"
-                                class="inline-block text-[21px] font-semibold tracking-tight text-[#556269] transition hover:text-[#404c53]">
+                                class="inline-block text-[21px] font-semibold tracking-tight text-[var(--ink)] transition hover:text-[var(--ink)]">
                                 {{ note.title }}
                             </a>
 
-                            <p class="mt-2 text-[15px] leading-8 text-[#617076]">
+                            <p class="mt-2 text-[15px] leading-8 text-[var(--ink-2)]">
                                 {{ note.summary }}
                             </p>
 
-                            <div class="mt-2 text-[13px] text-[#908478]">
+                            <div class="mt-2 text-[13px] text-[var(--ink-3)]">
                                 <p>{{ note.date }}</p>
                             </div>
                         </article>
