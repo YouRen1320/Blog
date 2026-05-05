@@ -88,6 +88,55 @@ flutter build apk        # Android 调试 APK
 flutter build ios        # iOS(需要 Mac + signing)
 ```
 
+## 出 APK(release)
+
+### 方案 A:GitHub Actions 自动 build(推荐)
+
+每次推 `v*` tag 自动跑 [`mobile-build.yml`](../../.github/workflows/mobile-build.yml),APK 直接挂到对应 release:
+
+- **新 tag**:`git tag -a v1.5.0 ... && git push origin v1.5.0` → workflow 自动跑 → APK 出现在 v1.5.0 release assets
+- **已有 tag 补 APK**:在 GitHub Actions 页面手动 `Run workflow`,inputs.tag 填 `v1.4.0` → APK 挂到 v1.4.0 release
+- **本地命令行触发**:`gh workflow run mobile-build.yml -f tag=v1.4.0`
+
+ubuntu-latest runner 自带 Android SDK,workflow 装 Flutter 3.35 + Java 17 后跑 `flutter build apk --release`,~5 分钟。
+
+### 方案 B:本地 build
+
+需要本地完整 Android toolchain(`flutter doctor` 应该全 ✅):
+
+```bash
+# 一次性配置 Android cmdline-tools
+brew install --cask android-commandlinetools
+yes | sdkmanager --licenses
+
+# build
+cd apps/mobile
+flutter build apk --release
+# 产物:apps/mobile/build/app/outputs/flutter-apk/app-release.apk
+```
+
+### 关于签名
+
+当前 release 走 Flutter 默认的 **debug keystore**(`apps/mobile/android/app/build.gradle.kts` 第 38 行)。
+意味着:
+
+- ✅ 直接 sideload 装到 Android 手机能跑
+- ❌ Play Store **不接受 debug 签名**,真要上架时:
+  1. 生成 release keystore:`keytool -genkey -v -keystore release.keystore -alias mobile -keyalg RSA -keysize 2048 -validity 10000`
+  2. base64 后塞 GitHub Secrets(`KEYSTORE_BASE64` / `KEYSTORE_PASSWORD`)
+  3. workflow 里 `echo $KEYSTORE_BASE64 | base64 -d > release.keystore`
+  4. 改 `build.gradle.kts` 的 `signingConfigs.release` 用这个
+
+## iOS
+
+**当前不打包**,因为:
+
+- 需要 Apple Developer 账号($99/年)做 signing
+- 普通 IPA 装到 iOS 必须 sideload(AltStore / 自签),非开发者用户操作门槛高
+- macOS + Xcode 完整环境占 ~30 GB
+
+如果你想做:开 Apple Developer → 装 Xcode → Workflow 加一个 `runs-on: macos-latest` job 走 fastlane / xcodebuild。届时单独发版本。
+
 ---
 
 ## 真机测试 checklist

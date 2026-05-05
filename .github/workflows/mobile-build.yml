@@ -1,0 +1,82 @@
+name: Mobile build APK
+
+# trigger 三种:
+#   1. push 任意 v* tag    → 自动 build + 挂到该 tag 的 release
+#   2. workflow_dispatch + inputs.tag → 手动指定挂哪个已有 tag(用来给 v1.4.0 这种已经发布过的 tag 补 APK)
+#   3. workflow_dispatch + 不指定 tag → 只产 artifact 不挂 release(单纯 CI smoke test)
+#
+# Keystore 用 Flutter 默认的 debug keystore(release build fallback),适合 sideload 安装。
+# 真要上架 Play Store 时:
+#   - 生成 release keystore,base64 后塞 GitHub Secrets(KEYSTORE_BASE64 / KEYSTORE_PASSWORD)
+#   - workflow 里把 keystore 写出来,改 build.gradle.kts 的 signingConfigs.release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: '挂到哪个 release(留空只产 artifact)'
+        required: false
+        default: ''
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write   # 创建 / 更新 release
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: '17'
+
+      - name: Setup Flutter 3.35.7
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.7'
+          channel: stable
+          cache: true
+
+      - name: Pub get
+        working-directory: apps/mobile
+        run: flutter pub get
+
+      - name: Build APK
+        working-directory: apps/mobile
+        run: flutter build apk --release
+
+      - name: Show APK info
+        working-directory: apps/mobile
+        run: ls -la build/app/outputs/flutter-apk/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-apk
+          path: apps/mobile/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 30
+
+      # tag push 触发时:挂到当前 tag 对应的 release(没有就创建)
+      - name: Attach APK to release (tag push)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: apps/mobile/build/app/outputs/flutter-apk/app-release.apk
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # 手动 dispatch + 提供 tag 时:挂到该 tag(给 v1.4.0 这种已有 tag 补 APK)
+      - name: Attach APK to specified release (manual dispatch)
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.tag != ''
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag }}
+          files: apps/mobile/build/app/outputs/flutter-apk/app-release.apk
+          token: ${{ secrets.GITHUB_TOKEN }}
