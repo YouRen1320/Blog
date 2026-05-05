@@ -2,7 +2,7 @@
 
 一个个人博客 vibe coding 项目。从空仓库开始,做完一整套**前后端 + 移动端 + AI 生成 + RAG 检索 + 生产部署**。
 
-**当前版本**:`v1.3.0` · **生产环境已上线**
+**当前版本**:`v1.13.0` · **生产环境已上线**
 
 ---
 
@@ -11,10 +11,14 @@
 | 入口 | 地址 | 说明 |
 | --- | --- | --- |
 | 公开博客 | <https://www.iyouren.top> | Nuxt SSR,所有人可访问 |
-| 后台管理 | <https://admin.iyouren.top> | 登录后管理文章 / 草稿 / 评论 / 设置 |
+| 后台管理 | <https://admin.iyouren.top> | 登录后管理文章 / 草稿 / 评论 / 用户 / 设置 |
 | API 接口 | <https://www.iyouren.top/api> | NestJS,Caddy 反代 `/api/*` 到 3000 |
+| API 文档 | <https://www.iyouren.top/api/docs-ui> | OpenAPI / Swagger 交互式 |
+| 全文搜索 | <https://www.iyouren.top/search> | ILIKE on title/summary/content |
+| 关于页 | <https://www.iyouren.top/about> | 后台 admin 可编辑 |
 | sitemap | <https://www.iyouren.top/sitemap.xml> | 给搜索引擎 |
 | RSS feed | <https://www.iyouren.top/feed.xml> | 订阅源 |
+| Android APK | <https://github.com/YouRen1320/Blog/releases/latest/download/app-release.apk> | latest tag 自动出包 |
 
 ### 默认管理员账号
 
@@ -147,7 +151,17 @@ cd apps/mobile && flutter pub get && flutter run
 | v1.1.0 | AI2:RAG | pgvector + BGE + LangGraph(mock 链路) |
 | v1.1.1 | AI2 补丁 | OpenAI SDK + 真 LLM 端到端 |
 | v1.2.0 | 后台增强 | 改密码 + 批量回填 embedding + LangSmith 接线 |
-| **v1.3.0** | **SEO + 评论** | **sitemap+RSS + 站点设置持久化 + 评论审核流** |
+| v1.3.0 | SEO + 评论 | sitemap+RSS + 站点设置持久化 + 评论审核流 |
+| v1.4.0 ~ 4 | AI-Native 工程化 | streaming / LiteLLM / reranker / LangFuse / eval / OTel / checkpoint / e2e / APK CI |
+| v1.5.0 | 产品落地 | 图床上传 + Whisper + OpenAPI/Swagger + 评论 AI 辅助 |
+| v1.6.0 | 多用户 + 响应式 | 公开注册 + 文章 authorId 隔离 + admin/web mobile 适配 |
+| v1.7.0 | 评论嵌套 | parentId 树状 + Gravatar 头像(email md5,不泄漏邮箱) |
+| v1.8.0 | dashboard | StatsModule 一次 endpoint 11 条聚合 + 7 个 metric 卡 |
+| v1.9.0 | /about 可编辑 | aboutMarkdown 字段 + admin Settings textarea |
+| v1.10.0 | AI 起标签 | InlineAction 加 'tags',流末 split 自动勾选 |
+| v1.11.0 | 用户管理 | /admin/users 列表 + 升降级 + 删除(自我保护) |
+| v1.12.0 | 编辑器拖图 | content textarea paste/drop 自动 /uploads 插 markdown |
+| **v1.13.0** | **全文搜索** | **ILIKE + 命中权重 + 关键词高亮 + footer 入口** |
 
 每个 tag 都有对应的 `docs/V?-REPORT.md` 完成报告 + `docs/journal/*.md` 决策与踩坑记录。
 

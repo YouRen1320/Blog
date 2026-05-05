@@ -19,6 +19,13 @@
 | **V1.4** —— AI-Native 工程化补完 | ✅ 完成 (v1.4.0) | 流式 SSE UI + 编辑器内联 AI(5 action)+ LiteLLM 多模型路由 + BGE-reranker + LangFuse + Promptfoo eval + OpenTelemetry + LangGraph checkpoint + Playwright e2e 11 个 | 16 jest + 5 pytest + 11 e2e + LiteLLM 真调 MiMo 验证 + promptfoo 配置通过 |
 | **V1.5** —— 产品落地补完 | ✅ 完成 (v1.5.0) | 图床/封面上传 + Whisper 语音 + OpenAPI/Swagger + 评论 AI 辅助 + web APK 下载入口 | 16 jest + 5 pytest + admin/web/mobile build 全过 + GH Actions APK auto-build |
 | **V1.6** —— 多用户 + 响应式 | ✅ 完成 (v1.6.0) | POST /auth/register + 文章 authorId 隔离(USER 只看自己)+ admin sidebar 改顶栏 + web 关键页 < 720/480 适配 | 17 jest + 公开注册返 USER role + 6 容器 healthy(磁盘 99% → 30%) |
+| **V1.7** —— 评论嵌套 + Gravatar | ✅ 完成 (v1.7.0) | parentId 树状渲染 + email md5 头像(authorEmailHash 不返原 email) | 7 凌晨夜班连续 7 个 minor tag 之 1 |
+| **V1.8** —— 博客统计 dashboard | ✅ 完成 (v1.8.0) | StatsModule 一次 endpoint 11 条聚合 + admin Dashboard 重写 7 metric | 待审 PENDING 跳转 + Today 卡 |
+| **V1.9** —— /about admin 可编辑 | ✅ 完成 (v1.9.0) | SiteSetting 加 aboutMarkdown + admin Settings textarea + web markdown-it 渲染 | 替换原硬编码 |
+| **V1.10** —— AI 起标签 | ✅ 完成 (v1.10.0) | InlineAction 加 'tags',编辑器流末 split 匹配 / 自动勾选 / 新词建议 | LLM 输出"逗号分隔" |
+| **V1.11** —— 用户管理 | ✅ 完成 (v1.11.0) | /admin/users 列表 + 升降级 + 删除,自我保护(防自删 / 防最后一个 ADMIN) | 配合 V1.6 多用户 |
+| **V1.12** —— 编辑器拖拽图片 | ✅ 完成 (v1.12.0) | content textarea paste/drop 监听,串行上传 + 光标处插 markdown | 写文章不用先去图床 |
+| **V1.13** —— 全文搜索 | ✅ 完成 (v1.13.0) | ILIKE %q% on title/summary/content + 命中权重 + /search 页 + 关键词高亮 | footer 加 🔍 入口 |
 
 ---
 
