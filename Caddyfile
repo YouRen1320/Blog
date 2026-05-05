@@ -31,6 +31,12 @@ www.iyouren.top {
 		reverse_proxy api:3000
 	}
 
+	# /uploads/* 走 NestJS ServeStaticModule(不 strip,因为 NestJS 路径就是 /uploads/*)
+	# 一年浏览器缓存 + immutable(文件名是 hash,改图自动换 URL)
+	handle /uploads/* {
+		reverse_proxy api:3000
+	}
+
 	# 其它走 Nuxt
 	reverse_proxy web:3000
 }

@@ -39,6 +39,10 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
       AI_SERVICE_BASE_URL: http://ai-service:8001
+      UPLOAD_ROOT: /app/uploads
+    volumes:
+      # 上传图片持久化:容器重启 / rebuild 不丢
+      - blog_uploads:/app/uploads
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3000/articles"]
       interval: 15s
@@ -113,3 +117,4 @@ volumes:
   pgdata:
   caddy_data:
   caddy_config:
+  blog_uploads:

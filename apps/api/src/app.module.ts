@@ -1,8 +1,10 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
+import { ServeStaticModule } from '@nestjs/serve-static';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
+import { join } from 'node:path';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
@@ -14,6 +16,7 @@ import { AiModule } from './modules/ai/ai.module';
 import { EmbeddingModule } from './modules/embedding/embedding.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { CommentsModule } from './modules/comments/comments.module';
+import { UploadsModule } from './modules/uploads/uploads.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { validateEnv } from './config/env.validation';
@@ -77,6 +80,18 @@ import { validateEnv } from './config/env.validation';
     AiModule,
     SettingsModule,
     CommentsModule,
+    UploadsModule,
+    // 把上传的图片暴露成 /uploads/* 静态文件给 web / admin 直接访问
+    ServeStaticModule.forRoot({
+      rootPath: process.env.UPLOAD_ROOT ?? join(process.cwd(), 'uploads'),
+      serveRoot: '/uploads',
+      serveStaticOptions: {
+        index: false,
+        // 一年浏览器 + CDN 缓存(文件名是 hash,改图自动换 URL)
+        maxAge: '365d',
+        immutable: true,
+      },
+    }),
   ],
   providers: [
     // 守卫顺序:Throttler → Jwt → Roles

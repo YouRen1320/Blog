@@ -29,6 +29,27 @@
           </select>
         </div>
 
+        <!--
+          封面图:点击上传或拖入 → 走 /admin/uploads → 拿到 /uploads/<hash>.ext
+          已设过的 cover 显示缩略图 + 移除按钮;未设时一个虚线占位框
+        -->
+        <div class="cover-row">
+          <span class="mono cover-label">COVER:</span>
+          <label class="cover-box" :class="{ filled: !!post.cover, uploading: uploadingCover }">
+            <img v-if="post.cover" :src="resolveCoverUrl(post.cover)" alt="封面" class="cover-img" />
+            <span v-else-if="uploadingCover" class="cover-hint">上传中…</span>
+            <span v-else class="cover-hint">点击或拖入图片(≤8MB)</span>
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif,image/avif"
+              class="cover-input"
+              @change="onCoverPick"
+            />
+          </label>
+          <button v-if="post.cover" class="link" type="button" @click="post.cover = null">移除</button>
+          <span v-if="coverError" class="error">{{ coverError }}</span>
+        </div>
+
         <textarea v-model="post.summary" class="input summary" rows="2" placeholder="摘要(可选,前台列表展示)" />
 
         <div class="tags-edit">
@@ -97,6 +118,7 @@ import { createArticle, deleteArticle, getArticle, publishArticle, unpublishArti
 import { listCategories, type Category } from '../api/categories'
 import { listTags, type Tag } from '../api/tags'
 import { streamInlineAi, type InlineAction } from '../api/ai'
+import { uploadImage } from '../api/uploads'
 import { extractErrorMessage } from '../composables/useApiError'
 
 // :id 由 router 的 props: true 注入,/editor 时为 undefined
@@ -108,6 +130,7 @@ const post = reactive({
   slug: '',
   summary: '',
   content: '',
+  cover: null as string | null,
   categoryId: null as string | null,
   tagIds: [] as string[],
   status: 'DRAFT' as ArticleStatus,
@@ -115,6 +138,40 @@ const post = reactive({
   updatedAt: '' as string | null,
   publishedAt: '' as string | null,
 })
+
+// 封面图上传状态
+const uploadingCover = ref(false)
+const coverError = ref('')
+
+/**
+ * 后端返回的 cover URL 是相对路径(/uploads/<hash>.ext)。
+ * 在 admin 页面里展示时需要拼上 web 端域名(因为 admin 跟 web 不同子域)。
+ * 同 Comments.vue 的 webUrlFor:dev 直跳 :3100,生产用 iyouren.top。
+ */
+function resolveCoverUrl(url: string): string {
+  if (url.startsWith('http')) return url   // 旧数据是绝对 URL 时直接用
+  if (typeof window === 'undefined') return url
+  const host = window.location.hostname
+  if (host.endsWith('iyouren.top')) return `https://www.iyouren.top${url}`
+  return `http://localhost:3100${url}`
+}
+
+async function onCoverPick(e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  uploadingCover.value = true
+  coverError.value = ''
+  try {
+    const res = await uploadImage(file)
+    post.cover = res.url
+  } catch (err) {
+    coverError.value = extractErrorMessage(err, '上传失败')
+  } finally {
+    uploadingCover.value = false
+    input.value = ''  // 允许重新选同一个文件
+  }
+}
 
 const categories = ref<Category[]>([])
 const tags = ref<Tag[]>([])
@@ -136,6 +193,7 @@ async function loadArticle(id: string) {
   const a = await getArticle(id)
   post.title = a.title
   post.slug = a.slug
+  post.cover = a.cover ?? null
   post.summary = a.summary ?? ''
   post.content = a.content
   post.categoryId = a.category?.id ?? null
@@ -185,6 +243,7 @@ async function onSave(): Promise<string | undefined> {
       slug: post.slug.trim() || undefined,
       summary: post.summary.trim() || undefined,
       content: post.content,
+      cover: post.cover ?? undefined,
       categoryId: post.categoryId ?? undefined,
       tagIds: post.tagIds,
     }
@@ -352,6 +411,27 @@ function actionLabel(a: InlineAction): string {
 }
 .input:focus { border-color: var(--accent); }
 .summary { resize: vertical; }
+
+/* 封面图上传:左 label,中点击/拖入框,右移除 */
+.cover-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.cover-label { font-size: 10px; letter-spacing: 0.16em; color: var(--ink-3); }
+.cover-box {
+  position: relative;
+  width: 200px; height: 100px;
+  border: 1.5px dashed var(--rule);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  cursor: pointer;
+  background: var(--bg);
+  transition: border-color 0.2s;
+}
+.cover-box:hover { border-color: var(--accent); }
+.cover-box.filled { border-style: solid; padding: 0; }
+.cover-box.uploading { border-color: var(--accent); }
+.cover-img { width: 100%; height: 100%; object-fit: cover; }
+.cover-hint { font-size: 11px; color: var(--ink-3); padding: 6px 12px; text-align: center; }
+.cover-input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 
 .tags-edit { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .tags-label { font-size: 10px; letter-spacing: 0.16em; color: var(--ink-3); }
