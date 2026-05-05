@@ -15,6 +15,12 @@ dependencies = [
     # Prompt / 调用追踪。LiteLLM 自带 langfuse 集成,设了 env + callback 就自动发,
     # 业务代码 0 侵入。云免费 tier 就够小博客用
     "langfuse>=2.55.0",
+    # OpenTelemetry 全栈追踪(默认不发,只有设了 OTEL_EXPORTER_OTLP_ENDPOINT 才工作)
+    # 跟 NestJS 端的 OTel 配合,trace 跨服务串起来(NestJS HTTP → ai-service)
+    "opentelemetry-sdk>=1.27.0",
+    "opentelemetry-exporter-otlp>=1.27.0",
+    "opentelemetry-instrumentation-fastapi>=0.48b0",
+    "opentelemetry-instrumentation-httpx>=0.48b0",
     # 环境变量解析 + 类型校验
     "pydantic>=2.8.0",
     "pydantic-settings>=2.5.0",

@@ -45,6 +45,11 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# OpenTelemetry:env OTEL_EXPORTER_OTLP_ENDPOINT 不设时完全无副作用
+from app.core.otel import setup_otel  # noqa: E402
+
+setup_otel(app)
+
 app.include_router(generate_router, prefix="/generate", tags=["generate"])
 app.include_router(stream_router, prefix="/generate", tags=["generate"])
 app.include_router(inline_router, prefix="/generate", tags=["generate"])

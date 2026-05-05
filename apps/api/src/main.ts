@@ -1,3 +1,5 @@
+// OTel 必须在所有业务 import 之前初始化,否则 auto-instrumentation 拿不到入口 hook
+import './instrumentation';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
