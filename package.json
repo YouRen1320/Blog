@@ -16,9 +16,12 @@
     "lint": "pnpm -r run lint",
     "format": "pnpm -r run format",
     "e2e": "playwright test",
-    "e2e:report": "playwright show-report e2e/report"
+    "e2e:report": "playwright show-report e2e/report",
+    "eval": "promptfoo eval -c eval/promptfooconfig.yaml",
+    "eval:view": "promptfoo view"
   },
   "devDependencies": {
-    "@playwright/test": "^1.59.1"
+    "@playwright/test": "^1.59.1",
+    "promptfoo": "0.119.0"
   }
 }

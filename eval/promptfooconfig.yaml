@@ -1,0 +1,110 @@
+# Blog AI service eval —— 草稿生成质量与 RAG 检索表现
+#
+# 用 promptfoo + HTTP provider 直接打 ai-service `/generate/article`,
+# 测的是**整条链路**(retrieve → rerank → generate),不是裸 LLM。
+#
+# 跑法:
+#   1. 起 ai-service:cd apps/ai-service && uvicorn main:app --port 8001
+#      (USE_MOCK_LLM=false + MiMo key 配好,否则 mock 返回固定假数据,assertion 没意义)
+#   2. pnpm eval
+#   3. pnpm eval:view  打开 HTML 报告
+
+description: Blog AI 草稿生成 eval
+
+# HTTP provider 调 ai-service。transformResponse 把结构化 JSON 拼成可断言的字符串。
+providers:
+  - id: http://127.0.0.1:8001/generate/article
+    config:
+      method: POST
+      headers:
+        Content-Type: application/json
+      body:
+        prompt: '{{prompt}}'
+        tone: '{{tone}}'
+        length: '{{length}}'
+      transformResponse: |
+        json.title + "\n\n" + (json.summary || "") + "\n\n" + json.content + "\n\nTAGS:" + (json.tags || []).join(",")
+
+# prompt 字段在每个 test case 的 vars.prompt 里,这里只是占位
+prompts:
+  - '{{prompt}}'
+
+# 5 个 ground truth case,覆盖 4 种 tone × 3 种 length 的代表性组合
+tests:
+  - description: 技术文 · 中等长度 · 关键词与结构
+    vars:
+      prompt: 写一篇 NestJS 模块化设计的入门文章,介绍 Module / Provider / Imports / Exports 四个核心概念
+      tone: technical
+      length: medium
+    assert:
+      - type: contains
+        value: NestJS
+      - type: contains-any
+        value: ['Module', '模块']
+      - type: contains
+        value: '##'   # 至少一个 h2 二级标题
+      - type: javascript
+        value: output.length > 600
+      - type: contains
+        value: 'TAGS:'
+
+  - description: 散文 · 短 · 抒情笔调
+    vars:
+      prompt: 我对深夜读书的体会,从一盏台灯说起
+      tone: casual
+      length: short
+    assert:
+      - type: contains-any
+        value: ['夜', '台灯', '书']
+      - type: javascript
+        value: output.length > 300
+      - type: contains
+        value: 'TAGS:'
+
+  - description: 诗意 · 短 · 留白结尾
+    vars:
+      prompt: 秋天的最后一片叶子
+      tone: poetic
+      length: short
+    assert:
+      - type: contains-any
+        value: ['秋', '叶']
+      - type: javascript
+        value: output.length > 200
+
+  - description: 知识科普 · 长 · 含技术名词
+    vars:
+      prompt: 详细介绍 RAG 检索增强生成,从 bi-encoder 召回到 cross-encoder 精排,再到 LLM 生成的整条链路
+      tone: technical
+      length: long
+    assert:
+      - type: contains-any
+        value: ['RAG', '检索']
+      - type: contains-any
+        value: ['embedding', 'encoder', '向量']
+      - type: javascript
+        value: output.length > 1500
+      - type: contains
+        value: '##'
+
+  - description: 元主题 · 中 · 引用风格(测 RAG 命中"第一灯"的场景)
+    vars:
+      prompt: 想聊聊我做这个个人博客时,第一篇文章想表达的初心
+      tone: poetic
+      length: medium
+    assert:
+      - type: contains-any
+        value: ['初心', '第一', '博客']
+      - type: javascript
+        value: output.length > 500
+
+# 全局 LLM-as-judge:用一个 cheap 的 LLM 给"是否符合 tone / 是否结构清晰"打分
+# 启用方式:配 OPENAI_API_KEY 或者 promptfoo 自己的 provider。当前留作可选,
+# 不启用时 javascript / contains 这些纯字符级断言已经足够看出生产是否 regression。
+defaultTest:
+  options:
+    # 单个 case 跑 1 次(LLM 输出有随机性,如果想统计平均通过率改成 3-5)
+    repeat: 1
+
+# 跑完命令行看 summary,完整 HTML 用 `pnpm eval:view` 在浏览器看
+outputPath: eval/results.json
