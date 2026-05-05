@@ -17,6 +17,7 @@
 | **V1.2** —— 后台增强 + 可观测性 | ✅ 完成 (v1.2.0) | 改密码 endpoint + 批量回填 embedding 按钮 + LangSmith tracing 环境变量接线 | 16 个 jest 全绿、改密码 401/400/200 路径生产验证、backfill 真路径 1/1 processed |
 | **V1.3** —— SEO + 站点设置 + 评论 | ✅ 完成 (v1.3.0) | sitemap.xml + RSS feed(Nuxt server route)+ SiteSetting 单表 + 完整评论系统(后端 + admin 审核 + web 公开) | 生产 sitemap/feed XML 输出 + admin /comments 列表 + 评论 PENDING→APPROVED 全流程通 |
 | **V1.4** —— AI-Native 工程化补完 | ✅ 完成 (v1.4.0) | 流式 SSE UI + 编辑器内联 AI(5 action)+ LiteLLM 多模型路由 + BGE-reranker + LangFuse + Promptfoo eval + OpenTelemetry + LangGraph checkpoint + Playwright e2e 11 个 | 16 jest + 5 pytest + 11 e2e + LiteLLM 真调 MiMo 验证 + promptfoo 配置通过 |
+| **V1.5** —— 产品落地补完 | ✅ 完成 (v1.5.0) | 图床/封面上传 + Whisper 语音 + OpenAPI/Swagger + 评论 AI 辅助 + web APK 下载入口 | 16 jest + 5 pytest + admin/web/mobile build 全过 + GH Actions APK auto-build |
 
 ---
 
