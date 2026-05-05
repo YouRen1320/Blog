@@ -1,10 +1,9 @@
 <template>
   <!--
-    /dashboard —— 仪表盘(V1-07 接真 API):
-    · 顶部欢迎卡 + 草稿待办数
-    · 4 个核心指标:已发布 / 草稿 / 分类 / 标签
-    · 下面分两栏:近期文章 + AI 收件箱占位(V4 接)
-    AI 收件箱当前是占位卡,V4 起接 ai-service 草稿队列。
+    /dashboard —— 后台仪表盘(V1.8 接 /admin/stats/overview):
+    · 顶部欢迎卡 + 待办提示(PENDING 评论 / 草稿)
+    · 7 个核心指标:文章 / 评论 / 用户 / 字数 / 今日
+    · 下面分两栏:近期文章 + 待审评论
   -->
   <AdminShell active="dashboard">
     <div class="stack">
@@ -12,13 +11,14 @@
         <div class="mono kicker">{{ greeting }}</div>
         <div class="kicker-rule" />
         <h1 class="cn hero-title">{{ heroLine }}</h1>
+        <p v-if="todoLine" class="cn hero-todo">{{ todoLine }}</p>
       </header>
 
       <div class="metrics">
-        <div v-for="m in metrics" :key="m.label" class="card metric">
-          <div class="mono metric-label">{{ m.label.toUpperCase() }}</div>
+        <div v-for="m in metricCards" :key="m.label" class="card metric">
+          <div class="mono metric-label">{{ m.label }}</div>
           <div class="serif metric-value">{{ m.value }}</div>
-          <div class="metric-delta">{{ m.hint }}</div>
+          <div v-if="m.hint" class="metric-delta">{{ m.hint }}</div>
         </div>
       </div>
 
@@ -36,10 +36,14 @@
         </section>
 
         <section class="card">
-          <div class="mono section-kicker accent">✦ AI INBOX · COMING IN V4</div>
-          <div class="placeholder">
-            <p class="cn">AI 草稿生产链路在 V4 接入。</p>
-            <p class="hint mono">FLUTTER → NESTJS → AI SERVICE → DRAFT</p>
+          <div class="mono section-kicker accent">✦ PENDING REVIEW</div>
+          <div v-if="stats && stats.comments.pending > 0" class="placeholder">
+            <p class="cn"><strong>{{ stats.comments.pending }}</strong> 条评论等你审。</p>
+            <RouterLink to="/comments" class="link">前往审核 →</RouterLink>
+          </div>
+          <div v-else class="placeholder">
+            <p class="cn">收件箱清空。</p>
+            <p class="hint mono">TODAY · {{ stats?.today.commented ?? 0 }} 条新评论 · {{ stats?.today.published ?? 0 }} 篇新文</p>
           </div>
         </section>
       </div>
@@ -52,8 +56,7 @@ import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import AdminShell from '../components/AdminShell.vue'
 import { listArticles, type ArticleSummary } from '../api/articles'
-import { listCategories } from '../api/categories'
-import { listTags } from '../api/tags'
+import { fetchStatsOverview, type StatsOverview } from '../api/stats'
 import { useAuthStore } from '../stores/auth'
 
 const auth = useAuthStore()
@@ -65,38 +68,42 @@ const greeting = computed(() => {
   return 'GOOD EVENING'
 })
 
-const draftsTotal = ref(0)
-const publishedTotal = ref(0)
-const categoriesTotal = ref(0)
-const tagsTotal = ref(0)
+const stats = ref<StatsOverview | null>(null)
 const recent = ref<ArticleSummary[]>([])
 
-const heroLine = computed(() => {
-  if (draftsTotal.value === 0) return `欢迎,${auth.user?.username ?? 'admin'}。准备好开始写了吗?`
-  return `有 ${draftsTotal.value} 篇草稿在等你。`
+const heroLine = computed(() => `欢迎,${auth.user?.username ?? 'admin'}。`)
+
+const todoLine = computed(() => {
+  if (!stats.value) return ''
+  const parts: string[] = []
+  if (stats.value.articles.draft > 0) parts.push(`${stats.value.articles.draft} 篇草稿在写`)
+  if (stats.value.comments.pending > 0) parts.push(`${stats.value.comments.pending} 条评论待审`)
+  if (parts.length === 0) return '收件箱空了。今天写一篇?'
+  return parts.join(' · ')
 })
 
-const metrics = computed(() => [
-  { label: '已发布', value: publishedTotal.value, hint: `${draftsTotal.value} 篇草稿` },
-  { label: '草稿', value: draftsTotal.value, hint: 'V4 起含 AI 生成' },
-  { label: '分类', value: categoriesTotal.value, hint: '后台管理' },
-  { label: '标签', value: tagsTotal.value, hint: '复用率高' },
-])
+const metricCards = computed(() => {
+  if (!stats.value) return []
+  const s = stats.value
+  return [
+    { label: 'PUBLISHED',  value: s.articles.published, hint: `共 ${s.articles.total} 篇` },
+    { label: 'DRAFT',      value: s.articles.draft,     hint: s.articles.archived ? `归档 ${s.articles.archived}` : '' },
+    { label: 'COMMENTS',   value: s.comments.approved,  hint: s.comments.pending ? `待审 ${s.comments.pending}` : '' },
+    { label: 'USERS',      value: s.users.total,        hint: '注册用户' },
+    { label: 'WORDS',      value: formatBigNum(s.content.totalChars), hint: '总字数' },
+    { label: 'TODAY · PUB',value: s.today.published,    hint: '今日发布' },
+    { label: 'TODAY · ✉',  value: s.today.commented,    hint: '今日评论' },
+  ]
+})
 
 onMounted(async () => {
   try {
-    const [drafts, pub, recentRes, cats, tags] = await Promise.all([
-      listArticles({ status: 'DRAFT', pageSize: 1 }),
-      listArticles({ status: 'PUBLISHED', pageSize: 1 }),
+    const [overview, recentRes] = await Promise.all([
+      fetchStatsOverview().catch(() => null),
       listArticles({ pageSize: 5 }),
-      listCategories(),
-      listTags(),
     ])
-    draftsTotal.value = drafts.meta.total
-    publishedTotal.value = pub.meta.total
+    stats.value = overview
     recent.value = recentRes.data
-    categoriesTotal.value = cats.length
-    tagsTotal.value = tags.length
   } catch {
     /* dashboard 失败不阻塞页面 */
   }
@@ -105,6 +112,14 @@ onMounted(async () => {
 function formatDate(iso: string) {
   const d = new Date(iso)
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+}
+
+/** 1234 → "1.2K";仪表盘瞥一眼用 */
+function formatBigNum(n: number): string {
+  if (n < 1000) return String(n)
+  if (n < 10000) return `${(n / 1000).toFixed(1)}K`
+  if (n < 1_000_000) return `${Math.round(n / 1000)}K`
+  return `${(n / 1_000_000).toFixed(1)}M`
 }
 </script>
 
@@ -116,11 +131,16 @@ function formatDate(iso: string) {
 .kicker { font-size: 10px; letter-spacing: 0.18em; color: var(--ink-3); }
 .kicker-rule { width: 18px; height: 1px; background: var(--ink-3); margin: 4px 0 14px; }
 .hero-title { font-size: 30px; font-weight: 600; margin: 0; color: var(--ink); }
+.hero-todo { font-size: 13px; color: var(--ink-2); margin: 10px 0 0; }
 
-.metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
-.metric { border-radius: 14px; padding: 20px 22px; }
-.metric-label { font-size: 9px; letter-spacing: 0.16em; color: var(--ink-3); margin-bottom: 8px; }
-.metric-value { font-size: 32px; font-weight: 600; color: var(--ink); letter-spacing: -0.02em; }
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 12px;
+}
+.metric { border-radius: 14px; padding: 18px 18px; }
+.metric-label { font-size: 9px; letter-spacing: 0.14em; color: var(--ink-3); margin-bottom: 6px; }
+.metric-value { font-size: 26px; font-weight: 600; color: var(--ink); letter-spacing: -0.02em; line-height: 1.1; }
 .metric-delta { font-size: 11px; color: var(--accent); margin-top: 4px; }
 
 .split { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; }
@@ -137,8 +157,23 @@ function formatDate(iso: string) {
 .row-time { font-size: 10px; color: var(--ink-3); text-align: right; }
 
 .placeholder { padding: 0 24px 24px; }
-.placeholder .cn { font-size: 13px; color: var(--ink-2); margin-top: 8px; }
+.placeholder .cn { font-size: 14px; color: var(--ink-2); margin: 4px 0 12px; }
+.placeholder strong { color: var(--accent); font-weight: 600; }
 .placeholder .hint { font-size: 10px; color: var(--ink-3); margin-top: 8px; letter-spacing: 0.14em; }
+.link { color: var(--accent); font-size: 12px; text-decoration: none; }
+.link:hover { text-decoration: underline; }
 
-@media (max-width: 1100px) { .metrics { grid-template-columns: repeat(2, 1fr); } .split { grid-template-columns: 1fr; } }
+@media (max-width: 1100px) {
+  .metrics { grid-template-columns: repeat(4, 1fr); }
+  .split { grid-template-columns: 1fr; }
+}
+@media (max-width: 700px) {
+  .metrics { grid-template-columns: repeat(2, 1fr); }
+  .row { grid-template-columns: 60px 1fr 70px; padding: 12px 18px; }
+}
+@media (max-width: 480px) {
+  .hero { padding: 22px 22px; }
+  .hero-title { font-size: 22px; }
+  .metric-value { font-size: 22px; }
+}
 </style>

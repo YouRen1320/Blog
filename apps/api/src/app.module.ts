@@ -17,6 +17,7 @@ import { EmbeddingModule } from './modules/embedding/embedding.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { CommentsModule } from './modules/comments/comments.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
+import { StatsModule } from './modules/stats/stats.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { validateEnv } from './config/env.validation';
@@ -81,6 +82,7 @@ import { validateEnv } from './config/env.validation';
     SettingsModule,
     CommentsModule,
     UploadsModule,
+    StatsModule,
     // 把上传的图片暴露成 /uploads/* 静态文件给 web / admin 直接访问
     ServeStaticModule.forRoot({
       rootPath: process.env.UPLOAD_ROOT ?? join(process.cwd(), 'uploads'),
