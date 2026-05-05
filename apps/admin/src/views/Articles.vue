@@ -28,9 +28,16 @@
             @click="setStatus(t.value)"
           >{{ t.label }}</button>
         </div>
+
+        <input
+          v-model.trim="searchQ"
+          class="article-search"
+          type="search"
+          placeholder="🔍 在当前列表里筛选标题 / slug…"
+        />
       </header>
 
-      <section class="card table" v-if="!loading && rows.length > 0">
+      <section class="card table" v-if="!loading && filteredRows.length > 0">
         <div class="row head mono">
           <span>TITLE</span>
           <span>STATUS</span>
@@ -38,7 +45,7 @@
           <span>UPDATED</span>
           <span class="actions-head">ACTIONS</span>
         </div>
-        <div v-for="a in rows" :key="a.id" class="row body">
+        <div v-for="a in filteredRows" :key="a.id" class="row body">
           <span class="cn cell-title">
             <RouterLink :to="`/editor/${a.id}`">{{ a.title }}</RouterLink>
             <span class="mono cell-slug">/{{ a.slug }}</span>
@@ -56,6 +63,7 @@
       </section>
 
       <section v-else-if="loading" class="card empty mono">LOADING…</section>
+      <section v-else-if="searchQ" class="card empty mono">没有匹配 "{{ searchQ }}" 的文章。</section>
       <section v-else class="card empty mono">还没有文章。点右上角「+ 新建文章」开始。</section>
 
       <p v-if="error" class="error mono">{{ error }}</p>
@@ -88,6 +96,20 @@ const pageSize = 10
 const loading = ref(false)
 const error = ref('')
 const rows = ref<ArticleSummary[]>([])
+const searchQ = ref('')
+
+/**
+ * 当前页内本地过滤(轻量)。后端 listArticles 没接 q 参数,我们只在前端
+ * 把当前 page 已加载的 rows 按 title / slug substring 筛一遍。
+ * 当文章数 > 100 时建议给 backend 加 q,这里搜不到下一页的内容。
+ */
+const filteredRows = computed(() => {
+  const q = searchQ.value.toLowerCase().trim()
+  if (!q) return rows.value
+  return rows.value.filter(
+    (a) => a.title.toLowerCase().includes(q) || a.slug.toLowerCase().includes(q),
+  )
+})
 const totalPages = ref(1)
 const totalAll = ref(0)
 const totalDrafts = ref(0)
@@ -164,6 +186,20 @@ function formatDate(iso: string) {
   cursor: pointer; text-decoration: none;
 }
 .primary:hover { opacity: 0.92; }
+
+.article-search {
+  margin-top: 12px;
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--ink);
+  outline: none;
+  font-family: inherit;
+}
+.article-search:focus { border-color: var(--accent); }
 
 .tabs { display: flex; gap: 8px; }
 .tab {
