@@ -18,6 +18,7 @@
 | **V1.3** —— SEO + 站点设置 + 评论 | ✅ 完成 (v1.3.0) | sitemap.xml + RSS feed(Nuxt server route)+ SiteSetting 单表 + 完整评论系统(后端 + admin 审核 + web 公开) | 生产 sitemap/feed XML 输出 + admin /comments 列表 + 评论 PENDING→APPROVED 全流程通 |
 | **V1.4** —— AI-Native 工程化补完 | ✅ 完成 (v1.4.0) | 流式 SSE UI + 编辑器内联 AI(5 action)+ LiteLLM 多模型路由 + BGE-reranker + LangFuse + Promptfoo eval + OpenTelemetry + LangGraph checkpoint + Playwright e2e 11 个 | 16 jest + 5 pytest + 11 e2e + LiteLLM 真调 MiMo 验证 + promptfoo 配置通过 |
 | **V1.5** —— 产品落地补完 | ✅ 完成 (v1.5.0) | 图床/封面上传 + Whisper 语音 + OpenAPI/Swagger + 评论 AI 辅助 + web APK 下载入口 | 16 jest + 5 pytest + admin/web/mobile build 全过 + GH Actions APK auto-build |
+| **V1.6** —— 多用户 + 响应式 | ✅ 完成 (v1.6.0) | POST /auth/register + 文章 authorId 隔离(USER 只看自己)+ admin sidebar 改顶栏 + web 关键页 < 720/480 适配 | 17 jest + 公开注册返 USER role + 6 容器 healthy(磁盘 99% → 30%) |
 
 ---
 
