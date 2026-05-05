@@ -12,7 +12,7 @@
 | **V3** —— 移动端 | ✅ 完成 (v0.3.0) | Flutter 登录 / 文章列表 / 详情 / 草稿 CRUD / 文本+语音创作入口(语音占位) | flutter analyze 全绿,APK 可构建,登录看草稿主链路通 |
 | **V4** —— AI 生产 | ✅ 完成 (v0.4.0) | Python ai-service(FastAPI) + 小米 MiMo 模型 + 结构化输出 + NestJS `/ai/*` 接入 + 草稿审核流 | mock 模式全链路通,真模式待小米 MiMo endpoint 验证 |
 | **Final** —— 生产化 | ✅ 完成 (v0.5.0) | 速率限制 + ArticleSource 字段 + ai-service 测试 + 结构化日志 + 全栈 Dockerfile | 41 个测试全绿,Dockerfile + Caddyfile + compose.prod 就绪 |
-| **V2** —— 真上线 | 等用户开放服务器 22 端口 | 服务器初始化 + Caddy 自动 HTTPS + 域名解析 + 生产 docker-compose + GitHub Actions CI/CD + 自动备份 + 健康检查 | https://www.iyouren.top 可访问,push main 自动部署 |
+| **V2** —— 真上线 | ✅ 完成 (v1.0.0) | 服务器初始化 + Caddy 自动 HTTPS + 域名解析 + 生产 docker-compose + GitHub Actions workflow + 每日备份 + 全栈健康检查 | https://www.iyouren.top 可访问,6 容器全部 Up,首次自动备份成功 |
 
 ---
 

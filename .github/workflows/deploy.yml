@@ -1,0 +1,119 @@
+# V2 部署 pipeline:push main → 跑测 → SSH 到服务器 git pull + compose up
+#
+# GitHub repo Settings → Secrets 需要配:
+#   - SSH_PRIVATE_KEY:本机生成的 ~/.ssh/blog-deploy 私钥内容
+#   - SERVER_HOST    :47.97.17.43
+#   - SERVER_USER    :admin (Aliyun Cloud Linux 默认非 root 用户)
+#   - SERVER_DEPLOY_DIR: /opt/blog
+#
+# 第一次部署后,每次 push main 自动触发。
+# 测试不过 deploy 不会跑。
+
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # 允许手动触发
+
+jobs:
+  test:
+    name: Run tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: blog
+          POSTGRES_PASSWORD: blog
+          POSTGRES_DB: blog
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U blog"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://blog:blog@localhost:5432/blog?schema=public
+      JWT_SECRET: ci-test-secret
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.18.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Prisma generate
+        working-directory: apps/api
+        run: pnpm exec prisma generate
+
+      - name: Prisma migrate deploy
+        working-directory: apps/api
+        run: pnpm exec prisma migrate deploy
+
+      - name: API unit tests
+        run: pnpm --filter api test
+
+      - name: API e2e tests
+        run: pnpm --filter api test:e2e
+
+      - name: Admin build
+        run: pnpm --filter admin build
+
+      - name: Web build
+        run: pnpm --filter web build
+
+  ai-test:
+    name: ai-service pytest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install ai-service deps
+        working-directory: apps/ai-service
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install -e ".[dev]"
+      - name: Run pytest
+        working-directory: apps/ai-service
+        env:
+          USE_MOCK_LLM: 'true'
+          XIAOMI_MIMO_API_KEY: 'ci-test-key'
+        run: .venv/bin/pytest -v
+
+  deploy:
+    name: Deploy to server
+    needs: [test, ai-test]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH and deploy
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -euo pipefail
+            cd ${{ secrets.SERVER_DEPLOY_DIR }}
+            git fetch --all
+            git reset --hard origin/main
+            # 用项目根的 docker-compose.prod.yml + 服务器的 /opt/blog/.env
+            docker compose -f docker-compose.prod.yml --env-file .env.production pull
+            docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+            # 清理悬挂镜像
+            docker image prune -f
+            # 等所有服务 healthy
+            sleep 10
+            docker compose -f docker-compose.prod.yml ps
