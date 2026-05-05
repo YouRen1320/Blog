@@ -13,6 +13,8 @@
 | **V4** —— AI 生产 | ✅ 完成 (v0.4.0) | Python ai-service(FastAPI) + 小米 MiMo 模型 + 结构化输出 + NestJS `/ai/*` 接入 + 草稿审核流 | mock 模式全链路通,真模式待小米 MiMo endpoint 验证 |
 | **Final** —— 生产化 | ✅ 完成 (v0.5.0) | 速率限制 + ArticleSource 字段 + ai-service 测试 + 结构化日志 + 全栈 Dockerfile | 41 个测试全绿,Dockerfile + Caddyfile + compose.prod 就绪 |
 | **V2** —— 真上线 | ✅ 完成 (v1.0.0) | 服务器初始化 + Caddy 自动 HTTPS + 域名解析 + 生产 docker-compose + GitHub Actions workflow + 每日备份 + 全栈健康检查 | https://www.iyouren.top 可访问,6 容器全部 Up,首次自动备份成功 |
+| **AI2** —— RAG + LangGraph | ✅ 完成 (v1.1.1) | pgvector + BGE 本地 embedding + LangGraph(retrieve→generate)+ NestJS 发布时异步 embed + MiMo OpenAI SDK | 真 LLM 生产端到端通,RAG 命中"第一灯"+ 草稿引用风格 |
+| **V1.2** —— 后台增强 + 可观测性 | ✅ 完成 (v1.2.0) | 改密码 endpoint + 批量回填 embedding 按钮 + LangSmith tracing 环境变量接线 | 16 个 jest 全绿、改密码 401/400/200 路径生产验证、backfill 真路径 1/1 processed |
 
 ---
 
