@@ -115,7 +115,7 @@ export async function streamAiDraft(
 /**
  * 编辑器内联 AI 操作类型。跟 ai-service InlineRequest.action 一一对应。
  */
-export type InlineAction = 'continue' | 'rewrite' | 'expand' | 'summarize' | 'title'
+export type InlineAction = 'continue' | 'rewrite' | 'expand' | 'summarize' | 'title' | 'tags'
 
 export interface InlineInput {
   action: InlineAction

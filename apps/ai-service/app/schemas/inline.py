@@ -6,7 +6,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-InlineAction = Literal["continue", "rewrite", "expand", "summarize", "title"]
+InlineAction = Literal["continue", "rewrite", "expand", "summarize", "title", "tags"]
 
 
 class InlineRequest(BaseModel):

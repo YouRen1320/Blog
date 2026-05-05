@@ -50,6 +50,13 @@ _ACTION_TEMPLATES = {
         "文章:\n{context}\n\n"
         "**只**输出标题文字,不要书名号、引号或其他装饰。"
     ),
+    "tags": (
+        "为下面这篇文章建议 3-5 个中文标签,简洁(每个 2-6 字),覆盖文章主题。"
+        "{instruction_block}\n\n"
+        "文章:\n{context}\n\n"
+        "**只**输出标签本身,**用半角逗号分隔**,例如:NestJS, 模块化, 后端架构\n"
+        "不要其他前后缀、引号、'建议:'之类的标记。"
+    ),
 }
 
 
@@ -69,6 +76,7 @@ async def stream_inline(req: InlineRequest) -> AsyncIterator[str]:
             "expand": f"(mock 扩写){req.selection[:30]} —— 加了一点细节和铺陈,使其更完整。",
             "summarize": "(mock 摘要)这是一段假装是 AI 写出来的摘要,200 字以内。",
             "title": "(mock 标题)流式 AI 写作辅助",
+            "tags": "AI, 工程化, 后端, 流式",
         }[req.action]
         for i in range(0, len(mock_text), 4):
             yield _sse("chunk", {"text": mock_text[i : i + 4]})

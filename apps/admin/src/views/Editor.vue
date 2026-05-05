@@ -92,6 +92,7 @@
         <div class="ai-row">
           <button class="ghost ai-btn" type="button" :disabled="ai.running" @click="onAi('title')">起标题</button>
           <button class="ghost ai-btn" type="button" :disabled="ai.running" @click="onAi('summarize')">摘要</button>
+          <button class="ghost ai-btn" type="button" :disabled="ai.running" @click="onAi('tags')">起标签</button>
         </div>
         <div class="ai-row">
           <button class="ghost ai-btn" type="button" :disabled="ai.running" @click="onAi('continue')">续写</button>
@@ -368,13 +369,36 @@ async function onAi(action: InlineAction) {
           acc += e.text
           if (action === 'title') post.title += e.text
           else if (action === 'summarize') post.summary += e.text
-          else post.content = beforeContent + acc + afterContent
+          else if (action === 'tags') {
+            // tags 不流式更新 UI,等流末统一处理(避免 partial split 闪烁)
+          } else post.content = beforeContent + acc + afterContent
         } else if (e.type === 'error') {
           setAiMsg('error', e.message)
         }
       },
     )
-    if (ai.kind !== 'error') setAiMsg('success', `AI ${actionLabel(action)}完成`)
+    // tags 流末解析:split 逗号 → trim → 跟现有 tags 列表 match,有的勾上,
+    // 没的写到 ai-msg 提示 admin 去 /tags 创建
+    if (action === 'tags' && ai.kind !== 'error') {
+      const suggested = acc.split(/[,，]/).map((s) => s.trim()).filter(Boolean)
+      const existing = new Set(tags.value.map((t) => t.name))
+      const matched: string[] = []
+      const newOnes: string[] = []
+      for (const name of suggested) {
+        if (existing.has(name)) {
+          matched.push(name)
+          const tag = tags.value.find((t) => t.name === name)
+          if (tag && !post.tagIds.includes(tag.id)) post.tagIds.push(tag.id)
+        } else {
+          newOnes.push(name)
+        }
+      }
+      const matchedHint = matched.length > 0 ? `已勾选 ${matched.length} 个(${matched.join(' / ')})` : '没有匹配上的'
+      const newHint = newOnes.length > 0 ? ` · 新词建议:${newOnes.join(' / ')}(去 /tags 加)` : ''
+      setAiMsg('success', `AI 标签:${matchedHint}${newHint}`)
+    } else if (ai.kind !== 'error') {
+      setAiMsg('success', `AI ${actionLabel(action)}完成`)
+    }
   } catch (e) {
     setAiMsg('error', extractErrorMessage(e, 'AI 调用失败'))
   } finally {
@@ -383,7 +407,7 @@ async function onAi(action: InlineAction) {
 }
 
 function actionLabel(a: InlineAction): string {
-  return { title: '起标题', summarize: '生成摘要', continue: '续写', rewrite: '改写', expand: '扩写' }[a]
+  return { title: '起标题', summarize: '生成摘要', continue: '续写', rewrite: '改写', expand: '扩写', tags: '起标签' }[a]
 }
 </script>
 
