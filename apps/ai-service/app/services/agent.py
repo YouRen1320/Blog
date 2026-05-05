@@ -14,8 +14,10 @@ LangGraph 多步 Agent —— 把"理解 + 检索 + 生成"画成状态图。
 
 import json
 import logging
+import uuid
 from typing import TypedDict
 
+from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 
 from app.core.config import get_settings
@@ -160,9 +162,26 @@ async def generate_node(state: AgentState) -> AgentState:
     return {"draft": DraftResponse(**payload)}
 
 
+# ── Checkpoint:让 graph state 在调用之间持久化(human-in-the-loop 前置)──
+# MemorySaver 进程内存,简单 + 重启丢;生产想跨重启持久化用 SqliteSaver:
+#   from langgraph.checkpoint.sqlite import SqliteSaver
+#   _CHECKPOINTER = SqliteSaver.from_conn_string("/data/agent-state.db")
+# 容器里需要把 /data 挂 volume,不然重启 sqlite 文件丢。
+_CHECKPOINTER = MemorySaver()
+
+
 # ── Graph 构建 ─────────────────────────────────────────
 def _build_graph():
-    """START → retrieve(top10)→ rerank(top3)→ generate → END"""
+    """
+    START → retrieve(top10)→ rerank(top3)→ generate → END
+
+    加 checkpointer 后:
+    - 每次调 ainvoke 必须传 config={"configurable":{"thread_id":"..."}}
+    - state 按 thread_id 持久化,可以多次 invoke 同一 thread 实现"接着跑"
+    - 想加 human-in-the-loop:在某节点调 langgraph.types.interrupt(...),
+      ainvoke 会抛 GraphInterrupt,外部审核完后用同一 thread_id 调
+      `graph.ainvoke(Command(resume=...), config=config)` 继续
+    """
     g = StateGraph(AgentState)
     g.add_node("retrieve", retrieve_node)
     g.add_node("rerank", rerank_node)
@@ -171,7 +190,7 @@ def _build_graph():
     g.add_edge("retrieve", "rerank")
     g.add_edge("rerank", "generate")
     g.add_edge("generate", END)
-    return g.compile()
+    return g.compile(checkpointer=_CHECKPOINTER)
 
 
 _GRAPH = None
@@ -184,14 +203,19 @@ def get_graph():
     return _GRAPH
 
 
-async def run_agent(req: DraftRequest) -> DraftResponse:
-    """对外入口:跑一次 graph,把 DraftResponse 取出来。"""
+async def run_agent(req: DraftRequest, thread_id: str | None = None) -> DraftResponse:
+    """
+    对外入口:跑一次 graph,把 DraftResponse 取出来。
+    thread_id 不传时每次新 uuid;同一 thread 多次调用可在 checkpoint 里
+    叠加 state(给 future 的 human-in-the-loop / 续作 / revise 流程用)。
+    """
     settings = get_settings()
     if settings.USE_MOCK_LLM:
         return _mock_draft(req)
 
     graph = get_graph()
-    final_state = await graph.ainvoke({"request": req})
+    config = {"configurable": {"thread_id": thread_id or str(uuid.uuid4())}}
+    final_state = await graph.ainvoke({"request": req}, config=config)
 
     if final_state.get("error"):
         raise RuntimeError(final_state["error"])
