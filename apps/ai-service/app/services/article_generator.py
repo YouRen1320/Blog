@@ -10,7 +10,7 @@ import logging
 
 from app.core.config import get_settings
 from app.schemas.draft import DraftRequest, DraftResponse
-from app.services.mimo_client import get_mimo_client
+from app.services.llm_router import acompletion
 from app.services.retriever import retrieve
 
 log = logging.getLogger(__name__)
@@ -64,8 +64,7 @@ _LENGTH_GUIDANCE = {
 
 
 async def generate_article_draft(req: DraftRequest) -> DraftResponse:
-    settings = get_settings()
-    if settings.USE_MOCK_LLM:
+    if get_settings().USE_MOCK_LLM:
         return _mock_draft(req)
 
     # AI2-04 起:RAG 检索作者历史文章,作为风格 + 知识参考塞进 prompt
@@ -85,7 +84,6 @@ async def generate_article_draft(req: DraftRequest) -> DraftResponse:
     except Exception as e:
         log.warning("RAG retrieve failed, generating without context: %s", e)
 
-    client = get_mimo_client()
     system = (
         "你是 Youren 的博客写作助手。读完用户描述后,产出可立刻进入草稿箱的中文文章。\n"
         "输出**必须**通过工具 save_article_draft,不要返回纯文本。\n"
@@ -101,13 +99,12 @@ async def generate_article_draft(req: DraftRequest) -> DraftResponse:
         f"{rag_context}"
     )
 
-    response = await client.chat.completions.create(
-        model=settings.XIAOMI_MIMO_MODEL,
-        max_completion_tokens=4096,
+    response = await acompletion(
         messages=[
             {"role": "system", "content": system},
             {"role": "user", "content": user},
         ],
+        max_completion_tokens=4096,
         tools=[_DRAFT_TOOL],
         # OpenAI 强制走某个 function 的写法:tool_choice = {"type":"function","function":{"name":...}}
         tool_choice={"type": "function", "function": {"name": "save_article_draft"}},

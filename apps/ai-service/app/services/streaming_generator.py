@@ -37,7 +37,7 @@ from typing import AsyncIterator
 
 from app.core.config import get_settings
 from app.schemas.draft import DraftRequest, DraftResponse
-from app.services.mimo_client import get_mimo_client
+from app.services.llm_router import acompletion
 from app.services.retriever import retrieve
 
 log = logging.getLogger(__name__)
@@ -160,7 +160,6 @@ async def stream_article(req: DraftRequest) -> AsyncIterator[str]:
     except Exception as e:
         log.warning("[stream] RAG retrieve failed: %s", e)
 
-    client = get_mimo_client()
     system = (
         "你是 Youren 的博客写作助手。请按以下 markdown 格式输出,**不要任何前后缀**:\n\n"
         "```\n"
@@ -185,13 +184,12 @@ async def stream_article(req: DraftRequest) -> AsyncIterator[str]:
 
     full_text = ""
     try:
-        stream = await client.chat.completions.create(
-            model=settings.XIAOMI_MIMO_MODEL,
-            max_completion_tokens=4096,
+        stream = await acompletion(
             messages=[
                 {"role": "system", "content": system},
                 {"role": "user", "content": user},
             ],
+            max_completion_tokens=4096,
             stream=True,
         )
         async for chunk in stream:

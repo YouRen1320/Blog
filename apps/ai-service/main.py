@@ -26,11 +26,13 @@ async def lifespan(app: FastAPI):  # noqa: ARG001
     settings = get_settings()
     _configure_logging(settings.LOG_LEVEL)
     log = logging.getLogger("ai-service")
+    from app.services.llm_router import current_provider_label
+
     log.info(
-        "ai-service starting | port=%s mock=%s model=%s",
+        "ai-service starting | port=%s mock=%s llm=%s",
         settings.AI_SERVICE_PORT,
         settings.USE_MOCK_LLM,
-        settings.XIAOMI_MIMO_MODEL,
+        current_provider_label(),
     )
     yield
     log.info("ai-service stopped")

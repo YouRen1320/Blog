@@ -16,14 +16,43 @@ class Settings(BaseSettings):
     AI_SERVICE_PORT: int = 8000
     LOG_LEVEL: str = "INFO"
 
-    XIAOMI_MIMO_API_KEY: str = Field(..., description="小米 MiMo 平台的 API key")
+    # ── LLM Provider 路由(LiteLLM) ─────────────────────────────
+    # LLM_PROVIDER 决定走哪家:mimo / openai / anthropic / gemini / qwen
+    # 各家的 model + key + (可选)base_url 单独配,LiteLLM 自动按 model 前缀选 driver
+    LLM_PROVIDER: str = Field(
+        default="mimo",
+        description="LLM 路由:mimo | openai | anthropic | gemini | qwen",
+    )
+
+    # MiMo(默认 provider,OpenAI 兼容协议)
+    XIAOMI_MIMO_API_KEY: str = Field("", description="小米 MiMo 平台的 API key")
     XIAOMI_MIMO_BASE_URL: str = Field(
         default="https://api.xiaomimimo.com/v1",
-        description="OpenAI 协议兼容端点根地址(SDK 自动追加 /chat/completions)",
+        description="MiMo OpenAI 协议端点根地址",
     )
     XIAOMI_MIMO_MODEL: str = Field(
         default="mimo-v2.5-pro",
-        description="生成用的模型 ID(由小米 MiMo 控制台决定)",
+        description="MiMo 生成模型 ID",
+    )
+
+    # OpenAI 原生
+    OPENAI_API_KEY: str = Field("", description="OpenAI 官方 API key")
+    OPENAI_MODEL: str = Field("gpt-4o", description="OpenAI 模型 ID")
+
+    # Anthropic 原生
+    ANTHROPIC_API_KEY: str = Field("", description="Anthropic API key")
+    ANTHROPIC_MODEL: str = Field("claude-sonnet-4-5", description="Anthropic 模型 ID")
+
+    # Google Gemini
+    GEMINI_API_KEY: str = Field("", description="Google AI Studio / Gemini API key")
+    GEMINI_MODEL: str = Field("gemini-2.0-flash", description="Gemini 模型 ID")
+
+    # 阿里云 Qwen(走 dashscope OpenAI 兼容端点)
+    QWEN_API_KEY: str = Field("", description="阿里云 dashscope API key")
+    QWEN_MODEL: str = Field("qwen-plus", description="Qwen 模型 ID")
+    QWEN_API_BASE: str = Field(
+        default="https://dashscope.aliyuncs.com/compatible-mode/v1",
+        description="Qwen OpenAI 兼容端点",
     )
 
     USE_MOCK_LLM: bool = Field(

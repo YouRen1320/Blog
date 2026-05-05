@@ -13,7 +13,7 @@ from typing import AsyncIterator
 
 from app.core.config import get_settings
 from app.schemas.inline import InlineRequest
-from app.services.mimo_client import get_mimo_client
+from app.services.llm_router import acompletion
 
 log = logging.getLogger(__name__)
 
@@ -85,11 +85,8 @@ async def stream_inline(req: InlineRequest) -> AsyncIterator[str]:
         instruction_block=instruction_block,
     )
 
-    client = get_mimo_client()
     try:
-        stream = await client.chat.completions.create(
-            model=settings.XIAOMI_MIMO_MODEL,
-            max_completion_tokens=2048,
+        stream = await acompletion(
             messages=[
                 {
                     "role": "system",
@@ -101,6 +98,7 @@ async def stream_inline(req: InlineRequest) -> AsyncIterator[str]:
                 },
                 {"role": "user", "content": user_prompt},
             ],
+            max_completion_tokens=2048,
             stream=True,
         )
         async for chunk in stream:

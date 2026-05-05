@@ -20,7 +20,7 @@ from langgraph.graph import END, START, StateGraph
 
 from app.core.config import get_settings
 from app.schemas.draft import DraftRequest, DraftResponse
-from app.services.mimo_client import get_mimo_client
+from app.services.llm_router import acompletion
 from app.services.retriever import RetrievedArticle, retrieve
 
 log = logging.getLogger(__name__)
@@ -83,8 +83,6 @@ async def generate_node(state: AgentState) -> AgentState:
     """走 MiMo(OpenAI 协议)生成草稿,塞 retrieved 上下文。"""
     req = state["request"]
     retrieved = state.get("retrieved", [])
-    settings = get_settings()
-    client = get_mimo_client()
 
     rag_block = ""
     if retrieved:
@@ -111,13 +109,12 @@ async def generate_node(state: AgentState) -> AgentState:
     )
 
     try:
-        response = await client.chat.completions.create(
-            model=settings.XIAOMI_MIMO_MODEL,
-            max_completion_tokens=4096,
+        response = await acompletion(
             messages=[
                 {"role": "system", "content": system},
                 {"role": "user", "content": user},
             ],
+            max_completion_tokens=4096,
             tools=[_DRAFT_TOOL],
             tool_choice={"type": "function", "function": {"name": "save_article_draft"}},
         )

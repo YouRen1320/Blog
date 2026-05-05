@@ -7,8 +7,11 @@ requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.32.0",
-    # OpenAI SDK,我们让它指向小米 MiMo 的 OpenAI 兼容端点(base_url=/v1)
+    # OpenAI SDK 留作 fallback 直连(LiteLLM 也用它做 OpenAI 兼容协议的底层)
     "openai>=1.50.0",
+    # 多模型路由:统一接口跑 OpenAI / Anthropic / Gemini / Qwen / MiMo,
+    # 不用为每个 provider 写一份 SDK 调用代码
+    "litellm>=1.55.0",
     # 环境变量解析 + 类型校验
     "pydantic>=2.8.0",
     "pydantic-settings>=2.5.0",
