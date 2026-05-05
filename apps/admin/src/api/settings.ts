@@ -9,6 +9,7 @@ export interface SiteSettings {
   title: string
   tagline: string
   icp: string
+  aboutMarkdown: string
   aiModel: string
   aiThreshold: number
   aiStreaming: boolean

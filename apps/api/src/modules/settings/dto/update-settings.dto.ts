@@ -28,6 +28,12 @@ export class UpdateSettingsDto {
   @MaxLength(100)
   icp?: string;
 
+  /** /about 页的 markdown 正文。空时 web 端显示占位文案。 */
+  @IsOptional()
+  @IsString()
+  @MaxLength(20_000)
+  aboutMarkdown?: string;
+
   @IsOptional()
   @IsString()
   @MaxLength(80)

@@ -25,6 +25,15 @@
         <Field label="ICP 备案号" hint="出现在页脚右侧">
           <input v-model="form.icp" class="input" type="text" />
         </Field>
+
+        <Field label="ABOUT 页内容" hint="支持 Markdown,出现在 web /about">
+          <textarea
+            v-model="form.aboutMarkdown"
+            class="input about-input"
+            rows="8"
+            placeholder="# 关于我&#10;&#10;在这里介绍你自己..."
+          />
+        </Field>
       </section>
 
       <section class="card group">
@@ -142,6 +151,7 @@ const form = reactive({
   title: '',
   tagline: '',
   icp: '',
+  aboutMarkdown: '',
   model: '',
   threshold: 85,
   streaming: true,
@@ -155,6 +165,7 @@ function applyServer(s: SiteSettings) {
   form.title = s.title
   form.tagline = s.tagline
   form.icp = s.icp
+  form.aboutMarkdown = s.aboutMarkdown ?? ''
   form.model = s.aiModel
   form.threshold = s.aiThreshold
   form.streaming = s.aiStreaming
@@ -195,6 +206,7 @@ async function submitSettings() {
       title: form.title,
       tagline: form.tagline,
       icp: form.icp,
+      aboutMarkdown: form.aboutMarkdown,
       aiModel: form.model,
       aiThreshold: form.threshold,
       aiStreaming: form.streaming,
@@ -379,6 +391,13 @@ async function submitPasswordChange() {
   outline: none;
 }
 .input:focus { border-color: var(--accent); }
+.about-input {
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: 12.5px;
+  line-height: 1.6;
+  resize: vertical;
+  min-height: 160px;
+}
 
 .actions {
   display: flex;

@@ -140,6 +140,7 @@ model SiteSetting {
   title        String   @default("YouRen")
   tagline      String   @default("An element-soul who writes.")
   icp          String   @default("")
+  aboutMarkdown String  @default("")
   aiModel      String   @default("mimo-v2.5-pro")
   aiThreshold  Int      @default(85)
   aiStreaming  Boolean  @default(true)

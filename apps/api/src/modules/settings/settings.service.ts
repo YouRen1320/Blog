@@ -32,6 +32,7 @@ export class SettingsService {
       title: s.title,
       tagline: s.tagline,
       icp: s.icp,
+      aboutMarkdown: s.aboutMarkdown,
     };
   }
 
