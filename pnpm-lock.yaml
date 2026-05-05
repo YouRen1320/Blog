@@ -20,6 +20,9 @@ importers:
       axios:
         specifier: ^1.16.0
         version: 1.16.0
+      markdown-it:
+        specifier: ^14.1.1
+        version: 14.1.1
       pinia:
         specifier: ^3.0.4
         version: 3.0.4(typescript@5.6.3)(vue@3.5.31(typescript@5.6.3))
@@ -30,6 +33,9 @@ importers:
         specifier: ^4.5.0
         version: 4.6.4(vue@3.5.31(typescript@5.6.3))
     devDependencies:
+      '@types/markdown-it':
+        specifier: ^14.1.2
+        version: 14.1.2
       '@vitejs/plugin-vue':
         specifier: ^5.2.1
         version: 5.2.4(vite@7.3.1(@types/node@24.12.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))(vue@3.5.31(typescript@5.6.3))

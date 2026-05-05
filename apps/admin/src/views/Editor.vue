@@ -60,16 +60,27 @@
           </label>
         </div>
 
-        <textarea
-          ref="contentRef"
-          v-model="post.content"
-          class="content-area"
-          :readonly="ai.running"
-          placeholder="正文(支持 Markdown · 拖入或粘贴图片自动上传)"
-          @paste="onContentPaste"
-          @drop.prevent="onContentDrop"
-          @dragover.prevent
-        />
+        <div class="content-bar mono">
+          <span>正文 · Markdown</span>
+          <button class="preview-toggle" type="button" @click="previewMode = !previewMode">
+            {{ previewMode ? '✎ 编辑' : '◑ 预览' }}
+          </button>
+        </div>
+
+        <div class="content-pane">
+          <textarea
+            v-show="!previewMode"
+            ref="contentRef"
+            v-model="post.content"
+            class="content-area"
+            :readonly="ai.running"
+            placeholder="正文(支持 Markdown · 拖入或粘贴图片自动上传)"
+            @paste="onContentPaste"
+            @drop.prevent="onContentDrop"
+            @dragover.prevent
+          />
+          <div v-if="previewMode" class="content-preview cn" v-html="renderedPreview" />
+        </div>
         <p v-if="contentImageUploading" class="content-upload-hint mono">
           正在上传图片…
         </p>
@@ -127,6 +138,10 @@ import { listTags, type Tag } from '../api/tags'
 import { streamInlineAi, type InlineAction } from '../api/ai'
 import { uploadImage } from '../api/uploads'
 import { extractErrorMessage } from '../composables/useApiError'
+import MarkdownIt from 'markdown-it'
+
+// markdown-it 配置同 web /writing/[slug]:不开 html(防 XSS)+ linkify
+const md = new MarkdownIt({ html: false, linkify: true, breaks: false })
 
 // :id 由 router 的 props: true 注入,/editor 时为 undefined
 const props = defineProps<{ id?: string }>()
@@ -368,6 +383,9 @@ async function onDelete() {
 
 // ── 内联 AI(5 个 action,SSE 流式)──────────────────────────
 const contentRef = ref<HTMLTextAreaElement | null>(null)
+// V1.15:实时预览开关。点"预览"切换 textarea 和渲染视图
+const previewMode = ref(false)
+const renderedPreview = computed(() => md.render(post.content || '_(空白)_'))
 const ai = reactive({
   running: false,
   message: '' as string,
@@ -535,6 +553,73 @@ function actionLabel(a: InlineAction): string {
   margin: 4px 0 0;
   letter-spacing: 0.1em;
 }
+
+.content-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0 4px;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: var(--ink-3);
+}
+.preview-toggle {
+  background: transparent;
+  border: 1px solid var(--rule);
+  color: var(--ink-2);
+  font-size: 10px;
+  padding: 4px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  letter-spacing: 0.12em;
+  font-family: var(--mono, ui-monospace, monospace);
+}
+.preview-toggle:hover { border-color: var(--accent); color: var(--accent); }
+
+.content-pane { position: relative; }
+
+.content-preview {
+  min-height: 400px;
+  padding: 18px 22px;
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  font-size: 14px;
+  line-height: 1.85;
+  color: var(--ink);
+  overflow-y: auto;
+  max-height: 70vh;
+}
+.content-preview :deep(h2) { font-size: 20px; font-weight: 600; margin: 20px 0 10px; color: var(--ink); }
+.content-preview :deep(h3) { font-size: 17px; font-weight: 600; margin: 16px 0 8px; }
+.content-preview :deep(p) { margin: 0 0 14px; }
+.content-preview :deep(blockquote) {
+  border-left: 2px solid var(--accent);
+  padding-left: 14px;
+  margin: 16px 0;
+  color: var(--ink-2);
+  font-style: italic;
+}
+.content-preview :deep(code) {
+  background: var(--card);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 12.5px;
+  font-family: var(--mono, ui-monospace, monospace);
+}
+.content-preview :deep(pre) {
+  background: var(--ink); color: var(--bg);
+  padding: 12px 14px; border-radius: 8px;
+  overflow-x: auto;
+  font-size: 12.5px; line-height: 1.6;
+  margin: 14px 0;
+}
+.content-preview :deep(pre code) { background: transparent; color: inherit; padding: 0; }
+.content-preview :deep(ul), .content-preview :deep(ol) { padding-left: 22px; margin: 0 0 14px; }
+.content-preview :deep(a) { color: var(--accent); text-decoration: none; }
+.content-preview :deep(a:hover) { text-decoration: underline; }
+.content-preview :deep(img) { max-width: 100%; height: auto; border-radius: 6px; margin: 10px 0; }
+.content-preview :deep(em) { color: var(--ink-3); }
 
 .content-area {
   flex: 1; min-height: 300px; padding: 14px;
