@@ -5,6 +5,7 @@ import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
 import { Logger as PinoLogger } from 'nestjs-pino';
 import type { NestExpressApplication } from '@nestjs/platform-express';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 
@@ -39,6 +40,37 @@ async function bootstrap() {
 
   // 全局异常过滤器:统一错误格式
   app.useGlobalFilters(new AllExceptionsFilter());
+
+  // OpenAPI / Swagger:从 controller + DTO 反射自动生成。
+  //
+  // NestJS 内部 path 不带 /api 前缀(生产 Caddy 把 /api/* strip 后转发到 NestJS),所以:
+  //   - 本地 dev: http://localhost:3000/docs-ui  和  /docs(JSON)
+  //   - 生产:    https://www.iyouren.top/api/docs-ui  和  /api/docs
+  // 生产可由 ENABLE_SWAGGER=false 关掉(默认开,小博客无所谓)
+  if (process.env.ENABLE_SWAGGER !== 'false') {
+    const config = new DocumentBuilder()
+      .setTitle('Blog API')
+      .setDescription(
+        'NestJS 主后端。Public 接口无需 token,/admin/* 需 ADMIN role + Bearer JWT。',
+      )
+      .setVersion('1.5.0')
+      .addBearerAuth(
+        { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+        'jwt',
+      )
+      .addTag('auth', '登录 / 改密码')
+      .addTag('articles', '文章 CRUD + 发布')
+      .addTag('comments', '评论 + 审核')
+      .addTag('ai', 'AI 草稿 / 流式 / 内联 / 转写')
+      .addTag('uploads', '图片上传')
+      .addTag('settings', '站点配置')
+      .build();
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('docs-ui', app, document, {
+      jsonDocumentUrl: 'docs',
+      swaggerOptions: { persistAuthorization: true },
+    });
+  }
 
   const port = Number(process.env.API_PORT ?? 3000);
   await app.listen(port);

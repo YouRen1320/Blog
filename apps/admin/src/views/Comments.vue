@@ -62,9 +62,30 @@
 
         <p class="content">{{ c.content }}</p>
 
+        <!--
+          AI 评估面板:不自动 approve / reject,只给 score + 建议 + 一句理由。
+          点击"✦ AI 评估"按钮调一次后端 LLM,~3-5s。
+          recommend = approve 时绿色,reject 时红色,review 时灰色。
+        -->
+        <div v-if="aiReviews[c.id]" :class="['ai-review', `rec-${aiReviews[c.id].recommend}`]">
+          <span class="mono ai-tag">✦ AI {{ aiReviews[c.id].score }}/10</span>
+          <span class="mono ai-rec">{{ recommendLabel(aiReviews[c.id].recommend) }}</span>
+          <span class="ai-reason">{{ aiReviews[c.id].reason }}</span>
+        </div>
+        <div v-else-if="aiLoading[c.id]" class="ai-review loading">
+          <span class="mono">✦ AI 评估中…</span>
+        </div>
+
         <footer class="item-foot">
           <span class="mono status-tag">{{ c.status }}</span>
           <span class="actions">
+            <button
+              v-if="!aiReviews[c.id]"
+              class="ghost small"
+              type="button"
+              :disabled="aiLoading[c.id]"
+              @click="onAiReview(c)"
+            >✦ AI 评估</button>
             <button
               v-if="c.status !== 'APPROVED'"
               class="primary small"
@@ -108,8 +129,10 @@ import {
   fetchComments,
   updateCommentStatus,
   deleteComment,
+  aiReviewComment,
   type AdminComment,
   type CommentStatus,
+  type CommentAiReview,
 } from '../api/comments'
 
 // 列表状态:数据 + 分页 + 当前过滤
@@ -149,6 +172,27 @@ async function reload() {
 }
 
 onMounted(reload)
+
+// AI 评估缓存:commentId → review;loading 单独 map(不让 review 字段闪)
+const aiReviews = ref<Record<string, CommentAiReview>>({})
+const aiLoading = ref<Record<string, boolean>>({})
+
+async function onAiReview(c: AdminComment) {
+  if (aiLoading.value[c.id] || aiReviews.value[c.id]) return
+  aiLoading.value = { ...aiLoading.value, [c.id]: true }
+  try {
+    const review = await aiReviewComment(c.id)
+    aiReviews.value = { ...aiReviews.value, [c.id]: review }
+  } catch (e) {
+    alert(`AI 评估失败:${(e as Error).message}`)
+  } finally {
+    aiLoading.value = { ...aiLoading.value, [c.id]: false }
+  }
+}
+
+function recommendLabel(r: 'approve' | 'review' | 'reject'): string {
+  return { approve: '建议通过', review: '建议人审', reject: '建议拒绝' }[r]
+}
 
 async function onApprove(c: AdminComment) {
   await updateCommentStatus(c.id, 'APPROVED')
@@ -248,6 +292,26 @@ const webUrlFor = computed(() => (slug: string) => {
   margin: 0 0 14px;
   white-space: pre-wrap;
 }
+
+/* AI 评估面板:介于 content 和 footer 之间,横排 score + 建议 + 一句理由 */
+.ai-review {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin: 0 0 12px;
+  font-size: 12px;
+  background: var(--bg);
+  border-left: 3px solid var(--ink-3);
+}
+.ai-review.rec-approve { border-left-color: #1f7a3e; background: #eef7f0; }
+.ai-review.rec-review  { border-left-color: #d4a017; background: #fdf6e8; }
+.ai-review.rec-reject  { border-left-color: #b3261e; background: #fdecec; }
+.ai-review.loading     { color: var(--ink-3); font-style: italic; }
+.ai-tag { font-weight: 500; letter-spacing: 0.05em; color: var(--ink); }
+.ai-rec { font-size: 11px; color: var(--ink-2); letter-spacing: 0.1em; }
+.ai-reason { color: var(--ink-2); flex: 1; }
 
 .item-foot {
   display: flex;

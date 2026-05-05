@@ -43,3 +43,21 @@ export async function updateCommentStatus(id: string, status: CommentStatus) {
 export async function deleteComment(id: string) {
   await apiClient.delete(`/admin/comments/${id}`)
 }
+
+export interface CommentAiReview {
+  score: number              // 0-10
+  recommend: 'approve' | 'review' | 'reject'
+  reason: string             // 30 字以内中文
+}
+
+/**
+ * 让 LLM 评估一条评论。返回分数 + 建议 + 理由。
+ * 不自动 approve/reject,只给 ADMIN 参考。
+ * 后端走 ai-service /moderate,LLM 调用一次(吃 ai 档限流 10/min)。
+ */
+export async function aiReviewComment(id: string) {
+  const { data } = await apiClient.post<CommentAiReview>(
+    `/admin/comments/${id}/ai-review`,
+  )
+  return data
+}

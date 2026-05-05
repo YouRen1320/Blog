@@ -11,6 +11,7 @@ import {
   Query,
   Req,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Throttle } from '@nestjs/throttler';
 import type { Request } from 'express';
 import { CommentStatus } from '@prisma/client';
@@ -59,11 +60,24 @@ export class PublicCommentsController {
 @Controller('admin/comments')
 @Roles('ADMIN')
 export class AdminCommentsController {
-  constructor(private readonly service: CommentsService) {}
+  constructor(
+    private readonly service: CommentsService,
+    private readonly config: ConfigService,
+  ) {}
 
   @Get()
   list(@Query() query: CommentListQueryDto) {
     return this.service.listAdmin(query);
+  }
+
+  /**
+   * 评论 AI 辅助审核 —— 给当前评论拿一个 0-10 分 + 建议 + 一句理由。
+   * 不自动 approve/reject,只给参考意见,ADMIN 看完自己决定。
+   * ai 档限流 10/min(调一次 LLM call,跟正文生成共享 quota)。
+   */
+  @Post(':id/ai-review')
+  aiReview(@Param('id') id: string) {
+    return this.service.aiReview(id, this.config);
   }
 
   @Patch(':id/status')

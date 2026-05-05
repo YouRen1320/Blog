@@ -2,7 +2,9 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ArticleStatus, CommentStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { paginate, PaginationQueryDto } from '../../common/dto/pagination.dto';
@@ -112,6 +114,45 @@ export class CommentsService {
   }
 
   // ─── admin 端 ───────────────────────────────
+
+  /**
+   * 评论 AI 辅助审核 —— 调 ai-service /moderate 拿 score + recommend + reason。
+   * 不自动改 status,前端拿到结果后由 ADMIN 手动决定。
+   */
+  async aiReview(
+    commentId: string,
+    config: ConfigService,
+  ): Promise<{
+    score: number;
+    recommend: 'approve' | 'review' | 'reject';
+    reason: string;
+  }> {
+    const comment = await this.prisma.comment.findUnique({
+      where: { id: commentId },
+      include: { article: { select: { title: true } } },
+    });
+    if (!comment) throw new NotFoundException('评论不存在');
+
+    const baseUrl =
+      config.get<string>('AI_SERVICE_BASE_URL') ?? 'http://127.0.0.1:8001';
+    const res = await fetch(`${baseUrl}/moderate/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        content: comment.content,
+        author_name: comment.authorName,
+        article_title: comment.article.title,
+      }),
+    });
+    if (!res.ok) {
+      throw new ServiceUnavailableException(`AI 评估失败:${res.status}`);
+    }
+    return (await res.json()) as {
+      score: number;
+      recommend: 'approve' | 'review' | 'reject';
+      reason: string;
+    };
+  }
 
   async listAdmin(query: CommentListQueryDto) {
     const { page, pageSize, status } = query;
