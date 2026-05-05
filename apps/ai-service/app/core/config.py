@@ -18,11 +18,11 @@ class Settings(BaseSettings):
 
     XIAOMI_MIMO_API_KEY: str = Field(..., description="小米 MiMo 平台的 API key")
     XIAOMI_MIMO_BASE_URL: str = Field(
-        default="https://platform.xiaomimimo.com/anthropic",
-        description="Claude API 兼容端点根地址",
+        default="https://api.xiaomimimo.com/v1",
+        description="OpenAI 协议兼容端点根地址(SDK 自动追加 /chat/completions)",
     )
     XIAOMI_MIMO_MODEL: str = Field(
-        default="claude-3-5-sonnet-20241022",
+        default="mimo-v2.5-pro",
         description="生成用的模型 ID(由小米 MiMo 控制台决定)",
     )
 

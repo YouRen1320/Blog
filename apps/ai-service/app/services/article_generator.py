@@ -1,7 +1,7 @@
 """
 文章生成业务逻辑:
-- 把 DraftRequest 转成 Anthropic messages.create 的 prompt + tools
-- 用 tool_use 强制 LLM 输出严格 JSON(避免 free-form 解析失败)
+- 把 DraftRequest 转成 OpenAI chat.completions 的 messages + tools
+- 用 function calling(tool_choice 强制走单 function)拿到严格 JSON
 - 走 mock 时返回固定假数据
 """
 
@@ -15,33 +15,37 @@ from app.services.retriever import retrieve
 
 log = logging.getLogger(__name__)
 
+# OpenAI function calling 格式:type=function + function.{name, description, parameters(JSON Schema)}
 _DRAFT_TOOL = {
-    "name": "save_article_draft",
-    "description": "把生成的文章保存为博客草稿。所有字段必填(category_slug 可选)。",
-    "input_schema": {
-        "type": "object",
-        "properties": {
-            "title": {"type": "string", "description": "标题,不超过 60 字"},
-            "slug": {
-                "type": "string",
-                "description": "URL slug,英文小写 + 连字符,长度 3-80",
+    "type": "function",
+    "function": {
+        "name": "save_article_draft",
+        "description": "把生成的文章保存为博客草稿。所有字段必填(category_slug 可选)。",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "title": {"type": "string", "description": "标题,不超过 60 字"},
+                "slug": {
+                    "type": "string",
+                    "description": "URL slug,英文小写 + 连字符,长度 3-80",
+                },
+                "summary": {"type": "string", "description": "200 字以内摘要"},
+                "content": {
+                    "type": "string",
+                    "description": "完整正文,使用 Markdown 语法,包含 h2/h3 小节、必要的 blockquote 与代码块",
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "3-5 个建议标签名,中文",
+                },
+                "category_slug": {
+                    "type": "string",
+                    "description": "建议分类的 slug。可选,不确定时省略",
+                },
             },
-            "summary": {"type": "string", "description": "200 字以内摘要"},
-            "content": {
-                "type": "string",
-                "description": "完整正文,使用 Markdown 语法,包含 h2/h3 小节、必要的 blockquote 与代码块",
-            },
-            "tags": {
-                "type": "array",
-                "items": {"type": "string"},
-                "description": "3-5 个建议标签名,中文",
-            },
-            "category_slug": {
-                "type": "string",
-                "description": "建议分类的 slug。可选,不确定时省略",
-            },
+            "required": ["title", "slug", "summary", "content", "tags"],
         },
-        "required": ["title", "slug", "summary", "content", "tags"],
     },
 }
 
@@ -97,13 +101,16 @@ async def generate_article_draft(req: DraftRequest) -> DraftResponse:
         f"{rag_context}"
     )
 
-    response = await client.messages.create(
+    response = await client.chat.completions.create(
         model=settings.XIAOMI_MIMO_MODEL,
-        max_tokens=4096,
-        system=system,
-        messages=[{"role": "user", "content": user}],
+        max_completion_tokens=4096,
+        messages=[
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ],
         tools=[_DRAFT_TOOL],
-        tool_choice={"type": "tool", "name": _DRAFT_TOOL["name"]},
+        # OpenAI 强制走某个 function 的写法:tool_choice = {"type":"function","function":{"name":...}}
+        tool_choice={"type": "function", "function": {"name": "save_article_draft"}},
     )
 
     payload = _extract_tool_input(response)
@@ -111,11 +118,13 @@ async def generate_article_draft(req: DraftRequest) -> DraftResponse:
 
 
 def _extract_tool_input(response) -> dict:
-    """从 anthropic Message.content 列表里挑出 tool_use 的参数。"""
-    for block in response.content:
-        if getattr(block, "type", None) == "tool_use" and block.name == _DRAFT_TOOL["name"]:
-            return block.input
-    raise ValueError("LLM 没返回预期的 tool_use 调用")
+    """从 OpenAI ChatCompletion 里挑出 tool_call 的 arguments(JSON 字符串,需 loads)。"""
+    choice = response.choices[0]
+    tool_calls = getattr(choice.message, "tool_calls", None) or []
+    for call in tool_calls:
+        if call.function.name == "save_article_draft":
+            return json.loads(call.function.arguments)
+    raise ValueError("LLM 没返回预期的 tool_call(save_article_draft)")
 
 
 def _mock_draft(req: DraftRequest) -> DraftResponse:

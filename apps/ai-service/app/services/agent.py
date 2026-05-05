@@ -36,21 +36,24 @@ class AgentState(TypedDict, total=False):
     error: str                     # 任意节点出错时填,END 检查
 
 
-# ── Tool 定义(给 Claude tool_use)──────────────────────
+# ── Tool 定义(OpenAI function calling)─────────────────
 _DRAFT_TOOL = {
-    "name": "save_article_draft",
-    "description": "把生成的文章保存为博客草稿。",
-    "input_schema": {
-        "type": "object",
-        "properties": {
-            "title": {"type": "string", "description": "标题,不超过 60 字"},
-            "slug": {"type": "string", "description": "URL slug,英文小写 + 连字符"},
-            "summary": {"type": "string", "description": "200 字以内摘要"},
-            "content": {"type": "string", "description": "完整 Markdown 正文"},
-            "tags": {"type": "array", "items": {"type": "string"}},
-            "category_slug": {"type": "string"},
+    "type": "function",
+    "function": {
+        "name": "save_article_draft",
+        "description": "把生成的文章保存为博客草稿。",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "title": {"type": "string", "description": "标题,不超过 60 字"},
+                "slug": {"type": "string", "description": "URL slug,英文小写 + 连字符"},
+                "summary": {"type": "string", "description": "200 字以内摘要"},
+                "content": {"type": "string", "description": "完整 Markdown 正文"},
+                "tags": {"type": "array", "items": {"type": "string"}},
+                "category_slug": {"type": "string"},
+            },
+            "required": ["title", "slug", "summary", "content", "tags"],
         },
-        "required": ["title", "slug", "summary", "content", "tags"],
     },
 }
 
@@ -77,7 +80,7 @@ def retrieve_node(state: AgentState) -> AgentState:
 
 
 async def generate_node(state: AgentState) -> AgentState:
-    """走 Claude 生成草稿,塞 retrieved 上下文。"""
+    """走 MiMo(OpenAI 协议)生成草稿,塞 retrieved 上下文。"""
     req = state["request"]
     retrieved = state.get("retrieved", [])
     settings = get_settings()
@@ -108,25 +111,31 @@ async def generate_node(state: AgentState) -> AgentState:
     )
 
     try:
-        response = await client.messages.create(
+        response = await client.chat.completions.create(
             model=settings.XIAOMI_MIMO_MODEL,
-            max_tokens=4096,
-            system=system,
-            messages=[{"role": "user", "content": user}],
+            max_completion_tokens=4096,
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
             tools=[_DRAFT_TOOL],
-            tool_choice={"type": "tool", "name": _DRAFT_TOOL["name"]},
+            tool_choice={"type": "function", "function": {"name": "save_article_draft"}},
         )
     except Exception as e:
         log.error("[generate] LLM call failed: %s", e)
         return {"error": f"LLM call failed: {e}"}
 
     payload = None
-    for block in response.content:
-        if getattr(block, "type", None) == "tool_use" and block.name == _DRAFT_TOOL["name"]:
-            payload = block.input
+    tool_calls = getattr(response.choices[0].message, "tool_calls", None) or []
+    for call in tool_calls:
+        if call.function.name == "save_article_draft":
+            try:
+                payload = json.loads(call.function.arguments)
+            except json.JSONDecodeError as e:
+                return {"error": f"tool_call arguments not valid JSON: {e}"}
             break
     if not payload:
-        return {"error": "LLM 没返回预期的 tool_use 调用"}
+        return {"error": "LLM 没返回预期的 tool_call(save_article_draft)"}
 
     log.info("[generate] draft generated: %s", payload.get("title", "")[:30])
     return {"draft": DraftResponse(**payload)}

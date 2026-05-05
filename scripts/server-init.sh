@@ -64,8 +64,8 @@ JWT_EXPIRES_IN=7d
 
 # AI Service
 XIAOMI_MIMO_API_KEY=__YOUR_KEY__
-XIAOMI_MIMO_BASE_URL=https://platform.xiaomimimo.com/anthropic
-XIAOMI_MIMO_MODEL=claude-3-5-sonnet-20241022
+XIAOMI_MIMO_BASE_URL=https://api.xiaomimimo.com/v1
+XIAOMI_MIMO_MODEL=mimo-v2.5-pro
 USE_MOCK_LLM=false
 EOF
   chmod 600 "$DEPLOY_DIR/.env.production"
