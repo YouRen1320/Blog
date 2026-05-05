@@ -8,6 +8,7 @@ export interface PublicComment {
   id: string
   parentId: string | null
   authorName: string
+  authorEmailHash: string  // gravatar md5(后端 service 算好,不直接给 email)
   content: string
   createdAt: string
 }

@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import {
   BadRequestException,
   Injectable,
@@ -10,6 +11,11 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { paginate, PaginationQueryDto } from '../../common/dto/pagination.dto';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { CommentListQueryDto } from './dto/update-comment-status.dto';
+
+/** Gravatar 期望小写 + trim 邮箱的 md5。这是 90 年代约定的稳态算法,不要换。 */
+function gravatarHash(email: string): string {
+  return createHash('md5').update(email.trim().toLowerCase()).digest('hex');
+}
 
 /**
  * 评论 service。
@@ -25,13 +31,34 @@ import { CommentListQueryDto } from './dto/update-comment-status.dto';
  * 后续若垃圾增多再加 keyword 黑名单 / 蜜罐字段 / captcha。
  */
 
+// 包含 authorEmail 是为了在 service 层算 gravatar hash;**不直接返回邮箱**
 const publicCommentSelect = {
   id: true,
   parentId: true,
   authorName: true,
+  authorEmail: true,
   content: true,
   createdAt: true,
 } satisfies Prisma.CommentSelect;
+
+/** 把 raw comment 行转成 web 端响应:authorEmail → authorEmailHash(防泄漏)。 */
+function toPublic(c: {
+  id: string;
+  parentId: string | null;
+  authorName: string;
+  authorEmail: string;
+  content: string;
+  createdAt: Date;
+}) {
+  return {
+    id: c.id,
+    parentId: c.parentId,
+    authorName: c.authorName,
+    authorEmailHash: gravatarHash(c.authorEmail),
+    content: c.content,
+    createdAt: c.createdAt,
+  };
+}
 
 @Injectable()
 export class CommentsService {
@@ -55,14 +82,14 @@ export class CommentsService {
     };
     // 同 listAdmin,避开 $transaction batch + self-relation 的 Prisma 6.19 bug
     const total = await this.prisma.comment.count({ where });
-    const data = await this.prisma.comment.findMany({
+    const rows = await this.prisma.comment.findMany({
       where,
       select: publicCommentSelect,
       orderBy: { createdAt: 'asc' }, // 旧 → 新,符合时间叙事
       skip: (page - 1) * pageSize,
       take: pageSize,
     });
-    return paginate(data, total, page, pageSize);
+    return paginate(rows.map(toPublic), total, page, pageSize);
   }
 
   /**
@@ -107,7 +134,7 @@ export class CommentsService {
     });
     // 公开端不告诉用户 PENDING 状态,直接返回评论本体 + status hint
     return {
-      ...comment,
+      ...toPublic(comment),
       pending: true,
       message: '评论已提交,审核通过后将公开显示。',
     };
