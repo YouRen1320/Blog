@@ -26,12 +26,17 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isAuthenticated = computed(() => !!token.value)
 
+  /** 登录 / 注册成功后写入会话,Register.vue 也复用这个。 */
+  function setSession(accessToken: string, u: AuthUser) {
+    token.value = accessToken
+    user.value = u
+    localStorage.setItem(TOKEN_KEY, accessToken)
+    localStorage.setItem(USER_KEY, JSON.stringify(u))
+  }
+
   async function login(email: string, password: string) {
     const res = await loginRequest(email, password)
-    token.value = res.accessToken
-    user.value = res.user
-    localStorage.setItem(TOKEN_KEY, res.accessToken)
-    localStorage.setItem(USER_KEY, JSON.stringify(res.user))
+    setSession(res.accessToken, res.user)
   }
 
   function logout() {
@@ -41,5 +46,5 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem(USER_KEY)
   }
 
-  return { token, user, isAuthenticated, login, logout }
+  return { token, user, isAuthenticated, login, logout, setSession }
 })

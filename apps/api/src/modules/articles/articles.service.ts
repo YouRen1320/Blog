@@ -1,9 +1,14 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { ArticleStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { paginate } from '../../common/dto/pagination.dto';
 import { makeSlug } from '../../common/utils/slug';
 import { EmbeddingService } from '../embedding/embedding.service';
+import type { AuthUser } from '../../common/decorators/current-user.decorator';
 import { CreateArticleDto } from './dto/create-article.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
 import { ArticleQueryDto } from './dto/article-query.dto';
@@ -26,9 +31,14 @@ export class ArticlesService {
     private readonly embedding: EmbeddingService,
   ) {}
 
-  async listAdmin(query: ArticleQueryDto) {
+  /**
+   * V1.6 起,admin 端开放给 USER role,但**只能看到自己写的文章**;
+   * ADMIN 看全部。authorOwn 在 service 层强制,controller 不需要 @Roles。
+   */
+  async listAdmin(query: ArticleQueryDto, user: AuthUser) {
     const { page, pageSize, status, source } = query;
     const where: Prisma.ArticleWhereInput = {
+      ...(user.role === 'ADMIN' ? {} : { authorId: user.id }),
       ...(status ? { status } : {}),
       ...(source ? { source } : {}),
     };
@@ -54,6 +64,18 @@ export class ArticlesService {
     return article;
   }
 
+  /**
+   * 只有作者自己 / ADMIN 能拿到详情(防止 USER 偷别人草稿)。
+   * 公开端 PublicService.findArticleBySlug 已发布文章另算,任何人可看。
+   */
+  async findByIdScoped(id: string, user: AuthUser) {
+    const article = await this.findById(id);
+    if (user.role !== 'ADMIN' && article.authorId !== user.id) {
+      throw new ForbiddenException('无权访问该文章');
+    }
+    return article;
+  }
+
   async create(authorId: string, dto: CreateArticleDto) {
     const slug = dto.slug ?? makeSlug(dto.title);
     return this.prisma.article.create({
@@ -73,8 +95,17 @@ export class ArticlesService {
     });
   }
 
-  async update(id: string, dto: UpdateArticleDto) {
-    await this.findById(id);
+  /** 改 / 删 / 发布 / 下线统一过这个 ownership check。 */
+  private async assertOwnership(id: string, user: AuthUser) {
+    const article = await this.findById(id);
+    if (user.role !== 'ADMIN' && article.authorId !== user.id) {
+      throw new ForbiddenException('无权操作该文章');
+    }
+    return article;
+  }
+
+  async update(id: string, user: AuthUser, dto: UpdateArticleDto) {
+    await this.assertOwnership(id, user);
     return this.prisma.$transaction(async (tx) => {
       // tagIds 出现在 dto 里说明要全量替换;不出现就保留原状
       if (dto.tagIds !== undefined) {
@@ -100,14 +131,14 @@ export class ArticlesService {
     });
   }
 
-  async remove(id: string) {
-    await this.findById(id);
+  async remove(id: string, user: AuthUser) {
+    await this.assertOwnership(id, user);
     // article_tags 通过 schema 上的 Cascade 自动清掉
     return this.prisma.article.delete({ where: { id } });
   }
 
-  async publish(id: string) {
-    const article = await this.findById(id);
+  async publish(id: string, user: AuthUser) {
+    const article = await this.assertOwnership(id, user);
     const updated = await this.prisma.article.update({
       where: { id },
       data: {
@@ -122,8 +153,8 @@ export class ArticlesService {
     return updated;
   }
 
-  async unpublish(id: string) {
-    await this.findById(id);
+  async unpublish(id: string, user: AuthUser) {
+    await this.assertOwnership(id, user);
     return this.prisma.article.update({
       where: { id },
       data: { status: ArticleStatus.DRAFT, publishedAt: null },

@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -16,6 +17,41 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
   ) {}
+
+  /**
+   * 公开注册 —— 永远创建 USER role。
+   * username / email 任一冲突都返 409。
+   * 注册后**立即返回 token**(自动登录)免去再走一次 login。
+   */
+  async register(username: string, email: string, password: string) {
+    const exists = await this.prisma.user.findFirst({
+      where: { OR: [{ email }, { username }] },
+      select: { email: true, username: true },
+    });
+    if (exists) {
+      throw new ConflictException(
+        exists.email === email ? '该邮箱已被注册' : '该用户名已被使用',
+      );
+    }
+    const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+    const user = await this.prisma.user.create({
+      data: { username, email, passwordHash, role: 'USER' },
+    });
+    const accessToken = await this.jwt.signAsync({
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+    });
+    return {
+      accessToken,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+      },
+    };
+  }
 
   async login(email: string, password: string) {
     const user = await this.prisma.user.findUnique({ where: { email } });

@@ -11,6 +11,7 @@ import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { RegisterDto } from './dto/register.dto';
 import { Public } from '../../common/decorators/public.decorator';
 import {
   CurrentUser,
@@ -28,6 +29,18 @@ export class AuthController {
   @Post('login')
   login(@Body() dto: LoginDto) {
     return this.auth.login(dto.email, dto.password);
+  }
+
+  /**
+   * 公开注册。永远创建 USER role,ADMIN 由现有 ADMIN 在后台升级。
+   * strict 限流防爬虫批量注册。
+   */
+  @Throttle({ strict: { limit: 5, ttl: 60_000 } })
+  @Public()
+  @HttpCode(HttpStatus.CREATED)
+  @Post('register')
+  register(@Body() dto: RegisterDto) {
+    return this.auth.register(dto.username, dto.email, dto.password);
   }
 
   @Get('profile')

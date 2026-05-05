@@ -17,6 +17,19 @@ export async function loginRequest(email: string, password: string) {
   return data
 }
 
+/**
+ * 公开注册 —— 永远创建 USER role,创建后自动签 token,直接登录态。
+ * 后端 strict 限流 5/min。
+ */
+export async function registerRequest(username: string, email: string, password: string) {
+  const { data } = await apiClient.post<LoginResponse>('/auth/register', {
+    username,
+    email,
+    password,
+  })
+  return data
+}
+
 export async function fetchProfile() {
   const { data } = await apiClient.get<AuthUser>('/users/me')
   return data

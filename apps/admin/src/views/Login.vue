@@ -40,7 +40,7 @@
       </button>
 
       <div class="mono foot">
-        <a class="forgot">忘记密码</a>
+        <RouterLink to="/register" class="forgot">没账号?注册 →</RouterLink>
         <span>JWT · BEARER</span>
       </div>
     </form>
@@ -49,7 +49,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 
 const router = useRouter()

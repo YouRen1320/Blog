@@ -19,33 +19,35 @@ import {
   type AuthUser,
 } from '../../common/decorators/current-user.decorator';
 
+/**
+ * V1.6 起 admin/articles 不再限定 ADMIN —— 任何登录 USER 都能 CRUD 自己的文章。
+ * - listAdmin / findByIdScoped 在 service 层按 user.role 过滤(USER 只看自己)
+ * - update / delete / publish / unpublish 走 assertOwnership(USER 只能动自己;ADMIN 全权)
+ *
+ * backfillEmbeddings 是全局批量任务,继续 ADMIN-only。
+ */
 @Controller('admin/articles')
-@Roles('ADMIN')
 export class ArticlesController {
   constructor(
     private readonly service: ArticlesService,
     private readonly embedding: EmbeddingService,
   ) {}
 
-  /**
-   * 给老文章批量回填 embedding(只处理 PUBLISHED 且 embedding 为 NULL 的)。
-   * 同步处理,串行调用 BGE,每篇 ~2-3s,响应可能要几十秒到几分钟,
-   * 前端调用时要把 axios timeout 调大。
-   * 注意路径在 :id 之前注册,避免被 @Get(':id') / @Patch(':id') 拦截。
-   */
+  /** 全局批量回填,ADMIN 限定。 */
+  @Roles('ADMIN')
   @Post('backfill-embeddings')
   backfillEmbeddings() {
     return this.embedding.backfillMissingEmbeddings();
   }
 
   @Get()
-  list(@Query() query: ArticleQueryDto) {
-    return this.service.listAdmin(query);
+  list(@CurrentUser() user: AuthUser, @Query() query: ArticleQueryDto) {
+    return this.service.listAdmin(query, user);
   }
 
   @Get(':id')
-  detail(@Param('id') id: string) {
-    return this.service.findById(id);
+  detail(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.service.findByIdScoped(id, user);
   }
 
   @Post()
@@ -54,22 +56,26 @@ export class ArticlesController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateArticleDto) {
-    return this.service.update(id, dto);
+  update(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: UpdateArticleDto,
+  ) {
+    return this.service.update(id, user, dto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.service.remove(id);
+  remove(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.service.remove(id, user);
   }
 
   @Patch(':id/publish')
-  publish(@Param('id') id: string) {
-    return this.service.publish(id);
+  publish(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.service.publish(id, user);
   }
 
   @Patch(':id/unpublish')
-  unpublish(@Param('id') id: string) {
-    return this.service.unpublish(id);
+  unpublish(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.service.unpublish(id, user);
   }
 }

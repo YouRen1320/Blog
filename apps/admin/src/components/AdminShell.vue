@@ -171,4 +171,56 @@ const items: NavItem[] = [
 .theme-toggle:hover { color: var(--ink); }
 
 .main { min-width: 0; }
+
+/* === 移动端适配(< 900px)=== */
+/* 220px 固定 sidebar 在窄屏会挤掉内容,改成顶栏横排导航 + 用户信息折下面 */
+@media (max-width: 900px) {
+  .shell {
+    grid-template-columns: 1fr;
+    padding: 12px;
+    gap: 12px;
+  }
+  .aside {
+    position: static;
+    max-height: none;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 12px 14px;
+    gap: 8px;
+  }
+  .logo { padding: 0 8px 0 4px; font-size: 24px; }
+  .nav {
+    flex-direction: row;
+    flex: 1 1 auto;
+    gap: 2px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .nav::-webkit-scrollbar { display: none; }
+  .nav-item {
+    padding: 6px 10px;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+  .nav-badge { display: none; }   /* 横排空间紧,badge 隐掉 */
+  .user {
+    margin-top: 0;
+    padding: 0;
+    border-top: 0;
+    border-left: 1px solid var(--rule);
+    padding-left: 12px;
+    gap: 6px;
+  }
+  .user-name { font-size: 11px; }
+  .user-role { display: none; }
+}
+
+@media (max-width: 480px) {
+  .shell { padding: 8px; gap: 8px; }
+  .aside { padding: 10px; }
+  .logo { display: none; }   /* 极窄屏让位给 nav */
+  .user { display: none; }   /* 极窄屏让位给 nav,user 信息只在 settings 看 */
+}
 </style>
