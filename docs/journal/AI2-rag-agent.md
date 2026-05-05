@@ -92,10 +92,14 @@ void this.embedding.embedArticle(id);
 6. **服务器 git pull GitHub 不稳**:tar + scp 替代
 7. **prisma migrate deploy 跑不到新 migration**:容器里的 prisma/ 是镜像里的,不会读宿主机。重 build api 镜像后才看到
 8. **admin SPA build 时没 VITE_API_BASE_URL**:打包出的版本默认 localhost:3000,生产浏览器自然连不通。改成运行时探测 hostname
+9. **MiMo 协议错判**(v1.1.1 才修):看到"小米 claudecode 集成"就用 Anthropic SDK 调 `/messages`,各种 endpoint 全 401。实际 MiMo 是 OpenAI 协议:`https://api.xiaomimimo.com/v1/chat/completions` + `mimo-v2.5-pro`。SDK 整体换成 `openai`,tool 定义从 Anthropic `{name,input_schema}` 改成 OpenAI `{type:function, function:{name,parameters}}`,tool_call.arguments 是 JSON 字符串需 `json.loads`
+10. **DATABASE_URL 跨语言不通用**:Prisma 自动加 `?schema=public`,psycopg 不识别这个 URI 参数,`retrieve` 节点抛 `invalid URI query parameter: schema`,LangGraph 容错跳过 RAG 注入。修法:psycopg connect 前 `url.split("?",1)[0]` 剥掉 query
 
 ## 学到的
 
+- **不要从产品名 / 文档名推断协议**:小米的 "claudecode 集成"页面让我以为是 Anthropic 协议,浪费了 4 个 endpoint 路径试错。**直接 curl 一下 base_url 就知道是 OpenAI 还是 Anthropic 协议** —— 错误响应的 JSON 结构都不一样
 - **图模型(LangGraph)即使流程很简单也值得**:扩展性、可观测性、retry 都白来
+- **LangGraph 容错的副作用**:retrieve 节点出错被吞,生成依然通过,但 RAG 没注入;日志里那条 `[retrieve] failed` warning 不能漏看,否则会以为"RAG 工作但效果差",其实根本没跑
 - **生产部署 vs 本地跑通是两件事**,网络拓扑(代理、DNS、镜像源)经常是 99% 的卡点
 - **embedding dim 必须先验证再写 schema**,不要照模型卡片字面值
 - **Dockerfile RUN 后面的 `| tail`** 会吞错误码 + 错误内容,debug 极困难。生产关键 RUN 不要用 pipe
