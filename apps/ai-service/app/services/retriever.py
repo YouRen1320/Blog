@@ -32,7 +32,11 @@ class RetrievedArticle:
 def _conn():
     """每次新连接,小流量场景够用;大流量再上 pool。"""
     s = get_settings()
-    return psycopg.connect(s.DATABASE_URL)
+    # NestJS / Prisma 用的 DATABASE_URL 末尾会带 `?schema=public`,
+    # psycopg 把它当未知 URI 参数会报 invalid。schema=public 本就是 PostgreSQL 默认值,
+    # 直接剥掉 query string 不影响行为
+    url = s.DATABASE_URL.split("?", 1)[0]
+    return psycopg.connect(url)
 
 
 def retrieve(query: str, top_k: int = 3, min_similarity: float = 0.5) -> list[RetrievedArticle]:
