@@ -29,7 +29,10 @@ describe('Auth (e2e)', () => {
       .send({ email: TEST_ADMIN.email, password: TEST_ADMIN.password })
       .expect(200);
     expect(res.body.accessToken).toEqual(expect.any(String));
-    expect(res.body.user).toMatchObject({ email: TEST_ADMIN.email, role: 'ADMIN' });
+    expect(res.body.user).toMatchObject({
+      email: TEST_ADMIN.email,
+      role: 'ADMIN',
+    });
   });
 
   it('POST /auth/login 错密码返回 401,且不暴露具体原因', async () => {
@@ -53,16 +56,22 @@ describe('Auth (e2e)', () => {
       .post('/auth/login')
       .send({ email: 'not-email', password: '1' })
       .expect(400);
-    expect(res.body.message).toEqual(expect.arrayContaining([
-      expect.stringContaining('email'),
-      expect.stringContaining('密码'),
-    ]));
+    expect(res.body.message).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('email'),
+        expect.stringContaining('密码'),
+      ]),
+    );
   });
 
   it('POST /auth/login 拒绝额外字段(forbidNonWhitelisted)', async () => {
     await request(server)
       .post('/auth/login')
-      .send({ email: TEST_ADMIN.email, password: TEST_ADMIN.password, extra: 'evil' })
+      .send({
+        email: TEST_ADMIN.email,
+        password: TEST_ADMIN.password,
+        extra: 'evil',
+      })
       .expect(400);
   });
 

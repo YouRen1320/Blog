@@ -18,7 +18,8 @@ import { JwtStrategy } from './strategies/jwt.strategy';
         // expiresIn 在 jsonwebtoken 类型里是模板字符串字面量(`'7d'`、`'30s'` 等),
         // 从 env 读到的 string 默认对不上,需要显式转一下类型。
         signOptions: {
-          expiresIn: (config.get<string>('JWT_EXPIRES_IN') ?? '7d') as SignOptions['expiresIn'],
+          expiresIn: (config.get<string>('JWT_EXPIRES_IN') ??
+            '7d') as SignOptions['expiresIn'],
         },
       }),
     }),

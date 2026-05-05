@@ -3,7 +3,10 @@ import { Throttle } from '@nestjs/throttler';
 import { AiService } from './ai.service';
 import { CreateAiDraftDto } from './dto/create-draft.dto';
 import { Roles } from '../../common/decorators/roles.decorator';
-import { CurrentUser, type AuthUser } from '../../common/decorators/current-user.decorator';
+import {
+  CurrentUser,
+  type AuthUser,
+} from '../../common/decorators/current-user.decorator';
 
 @Controller('admin/ai')
 @Roles('ADMIN')

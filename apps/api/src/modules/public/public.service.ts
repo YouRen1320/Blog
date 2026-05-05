@@ -24,7 +24,10 @@ const publicArticleDetailSelect = {
 export class PublicService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async listArticles(query: PaginationQueryDto, where: Prisma.ArticleWhereInput = {}) {
+  async listArticles(
+    query: PaginationQueryDto,
+    where: Prisma.ArticleWhereInput = {},
+  ) {
     const { page, pageSize } = query;
     const finalWhere: Prisma.ArticleWhereInput = {
       ...where,

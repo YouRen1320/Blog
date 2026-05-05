@@ -30,8 +30,13 @@ describe('ArticlesService', () => {
   });
 
   it('publish:首次发布打 publishedAt 时间戳', async () => {
-    prismaMock.article.findUnique.mockResolvedValue({ id: 'a1', publishedAt: null });
-    prismaMock.article.update.mockImplementation(({ data }: any) => Promise.resolve({ id: 'a1', ...data }));
+    prismaMock.article.findUnique.mockResolvedValue({
+      id: 'a1',
+      publishedAt: null,
+    });
+    prismaMock.article.update.mockImplementation(({ data }: any) =>
+      Promise.resolve({ id: 'a1', ...data }),
+    );
 
     await service.publish('a1');
 
@@ -42,17 +47,29 @@ describe('ArticlesService', () => {
 
   it('publish:重发(原本就有 publishedAt)→ 保留旧时间戳', async () => {
     const original = new Date('2026-01-01T00:00:00Z');
-    prismaMock.article.findUnique.mockResolvedValue({ id: 'a1', publishedAt: original });
-    prismaMock.article.update.mockImplementation(({ data }: any) => Promise.resolve({ id: 'a1', ...data }));
+    prismaMock.article.findUnique.mockResolvedValue({
+      id: 'a1',
+      publishedAt: original,
+    });
+    prismaMock.article.update.mockImplementation(({ data }: any) =>
+      Promise.resolve({ id: 'a1', ...data }),
+    );
 
     await service.publish('a1');
 
-    expect(prismaMock.article.update.mock.calls[0][0].data.publishedAt).toBe(original);
+    expect(prismaMock.article.update.mock.calls[0][0].data.publishedAt).toBe(
+      original,
+    );
   });
 
   it('unpublish:清掉 publishedAt 并改回 DRAFT', async () => {
-    prismaMock.article.findUnique.mockResolvedValue({ id: 'a1', publishedAt: new Date() });
-    prismaMock.article.update.mockImplementation(({ data }: any) => Promise.resolve(data));
+    prismaMock.article.findUnique.mockResolvedValue({
+      id: 'a1',
+      publishedAt: new Date(),
+    });
+    prismaMock.article.update.mockImplementation(({ data }: any) =>
+      Promise.resolve(data),
+    );
 
     await service.unpublish('a1');
 
@@ -63,6 +80,8 @@ describe('ArticlesService', () => {
 
   it('findById:不存在时抛 NotFoundException', async () => {
     prismaMock.article.findUnique.mockResolvedValue(null);
-    await expect(service.findById('does-not-exist')).rejects.toThrow(NotFoundException);
+    await expect(service.findById('does-not-exist')).rejects.toThrow(
+      NotFoundException,
+    );
   });
 });

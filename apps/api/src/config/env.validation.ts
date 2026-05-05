@@ -1,4 +1,12 @@
-import { IsEnum, IsNotEmpty, IsNumberString, IsOptional, IsString, IsUrl, validateSync } from 'class-validator';
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsNumberString,
+  IsOptional,
+  IsString,
+  IsUrl,
+  validateSync,
+} from 'class-validator';
 import { plainToInstance } from 'class-transformer';
 
 /**
@@ -38,10 +46,14 @@ class EnvVariables {
 }
 
 export function validateEnv(config: Record<string, unknown>) {
-  const validated = plainToInstance(EnvVariables, config, { enableImplicitConversion: true });
+  const validated = plainToInstance(EnvVariables, config, {
+    enableImplicitConversion: true,
+  });
   const errors = validateSync(validated, { skipMissingProperties: false });
   if (errors.length > 0) {
-    throw new Error(`环境变量校验失败:\n${errors.map((e) => e.toString()).join('\n')}`);
+    throw new Error(
+      `环境变量校验失败:\n${errors.map((e) => e.toString()).join('\n')}`,
+    );
   }
   return validated;
 }

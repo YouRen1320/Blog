@@ -12,7 +12,9 @@ export interface AuthUser {
   role: 'ADMIN' | 'USER';
 }
 
-export const CurrentUser = createParamDecorator((_data: unknown, ctx: ExecutionContext): AuthUser => {
-  const req = ctx.switchToHttp().getRequest();
-  return req.user;
-});
+export const CurrentUser = createParamDecorator(
+  (_data: unknown, ctx: ExecutionContext): AuthUser => {
+    const req = ctx.switchToHttp().getRequest();
+    return req.user;
+  },
+);

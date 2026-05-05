@@ -36,7 +36,9 @@ import { validateEnv } from './config/env.validation';
                 target: 'pino-pretty',
                 options: { singleLine: true, translateTime: 'HH:MM:ss' },
               },
-        autoLogging: { ignore: (req) => req.url === '/healthz' || req.url === '/articles' },
+        autoLogging: {
+          ignore: (req) => req.url === '/healthz' || req.url === '/articles',
+        },
         customLogLevel: (_req, res, err) => {
           if (err || res.statusCode >= 500) return 'error';
           if (res.statusCode >= 400) return 'warn';

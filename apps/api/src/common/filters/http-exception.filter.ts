@@ -1,4 +1,11 @@
-import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logger } from '@nestjs/common';
+import {
+  ArgumentsHost,
+  Catch,
+  ExceptionFilter,
+  HttpException,
+  HttpStatus,
+  Logger,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import type { Request, Response } from 'express';
 
@@ -28,7 +35,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
     if (exception instanceof HttpException) {
       status = exception.getStatus();
       const res = exception.getResponse();
-      message = typeof res === 'string' ? res : (res as any).message ?? exception.message;
+      message =
+        typeof res === 'string'
+          ? res
+          : ((res as any).message ?? exception.message);
     } else if (exception instanceof Prisma.PrismaClientKnownRequestError) {
       // P2002 唯一约束冲突 → 409
       // P2025 记录不存在 → 404
@@ -36,7 +46,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
         case 'P2002': {
           status = HttpStatus.CONFLICT;
           const target = (exception.meta as any)?.target;
-          message = `已存在相同的 ${Array.isArray(target) ? target.join(',') : target ?? '记录'}`;
+          message = `已存在相同的 ${Array.isArray(target) ? target.join(',') : (target ?? '记录')}`;
           break;
         }
         case 'P2025':

@@ -1,4 +1,8 @@
-import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ArticleSource, ArticleStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -36,7 +40,9 @@ export class AiService {
       // 1. 处理分类(可选)
       let categoryId: string | undefined;
       if (draft.category_slug) {
-        const cat = await tx.category.findUnique({ where: { slug: draft.category_slug } });
+        const cat = await tx.category.findUnique({
+          where: { slug: draft.category_slug },
+        });
         if (cat) categoryId = cat.id;
         // 找不到就 silent skip:分类需要后台管理员把控,LLM 不能凭空建
       }
@@ -69,7 +75,9 @@ export class AiService {
           source: ArticleSource.AI,
           authorId,
           categoryId,
-          tags: tagIds.length ? { create: tagIds.map((tagId) => ({ tagId })) } : undefined,
+          tags: tagIds.length
+            ? { create: tagIds.map((tagId) => ({ tagId })) }
+            : undefined,
         },
         include: {
           category: true,
@@ -86,8 +94,11 @@ export class AiService {
    * - 出错时抛 503,前端拿到清晰 message
    */
   private async callAiService(dto: CreateAiDraftDto): Promise<AiServiceDraft> {
-    const baseUrl = this.config.get<string>('AI_SERVICE_BASE_URL') ?? 'http://127.0.0.1:8001';
-    this.logger.log(`calling ai-service ${baseUrl}/generate/article (prompt=${dto.prompt.slice(0, 40)}…)`);
+    const baseUrl =
+      this.config.get<string>('AI_SERVICE_BASE_URL') ?? 'http://127.0.0.1:8001';
+    this.logger.log(
+      `calling ai-service ${baseUrl}/generate/article (prompt=${dto.prompt.slice(0, 40)}…)`,
+    );
 
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 90_000);

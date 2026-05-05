@@ -24,18 +24,36 @@ describe('Public articles (e2e)', () => {
       .send({ email: TEST_ADMIN.email, password: TEST_ADMIN.password });
     token = login.body.accessToken;
 
-    const cb = await request(server).post('/admin/categories').set('Authorization', `Bearer ${token}`).send({ name: 'Backend', slug: 'backend' });
-    const cf = await request(server).post('/admin/categories').set('Authorization', `Bearer ${token}`).send({ name: 'Frontend', slug: 'frontend' });
+    const cb = await request(server)
+      .post('/admin/categories')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Backend', slug: 'backend' });
+    const cf = await request(server)
+      .post('/admin/categories')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Frontend', slug: 'frontend' });
     backendCatId = cb.body.id;
     frontendCatId = cf.body.id;
 
-    const tn = await request(server).post('/admin/tags').set('Authorization', `Bearer ${token}`).send({ name: 'Nest', slug: 'nest' });
-    const tv = await request(server).post('/admin/tags').set('Authorization', `Bearer ${token}`).send({ name: 'Vue', slug: 'vue' });
+    const tn = await request(server)
+      .post('/admin/tags')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Nest', slug: 'nest' });
+    const tv = await request(server)
+      .post('/admin/tags')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Vue', slug: 'vue' });
     nestTagId = tn.body.id;
     vueTagId = tv.body.id;
 
     // 两篇 published(后端 nest + 前端 vue),一篇 draft
-    const make = async (title: string, slug: string, catId: string, tagIds: string[], publish: boolean) => {
+    const make = async (
+      title: string,
+      slug: string,
+      catId: string,
+      tagIds: string[],
+      publish: boolean,
+    ) => {
       const a = await request(server)
         .post('/admin/articles')
         .set('Authorization', `Bearer ${token}`)
@@ -49,7 +67,13 @@ describe('Public articles (e2e)', () => {
     };
     await make('Backend Pub', 'backend-pub', backendCatId, [nestTagId], true);
     await make('Frontend Pub', 'frontend-pub', frontendCatId, [vueTagId], true);
-    await make('Draft Hidden', 'draft-hidden', backendCatId, [nestTagId], false);
+    await make(
+      'Draft Hidden',
+      'draft-hidden',
+      backendCatId,
+      [nestTagId],
+      false,
+    );
   });
 
   afterAll(async () => {
@@ -77,11 +101,15 @@ describe('Public articles (e2e)', () => {
   });
 
   it('GET /categories/:slug/articles 按分类筛选', async () => {
-    const be = await request(server).get('/categories/backend/articles').expect(200);
+    const be = await request(server)
+      .get('/categories/backend/articles')
+      .expect(200);
     expect(be.body.meta.total).toBe(1);
     expect(be.body.data[0].slug).toBe('backend-pub');
 
-    const fe = await request(server).get('/categories/frontend/articles').expect(200);
+    const fe = await request(server)
+      .get('/categories/frontend/articles')
+      .expect(200);
     expect(fe.body.meta.total).toBe(1);
     expect(fe.body.data[0].slug).toBe('frontend-pub');
   });
@@ -98,8 +126,15 @@ describe('Public articles (e2e)', () => {
   });
 
   it('分页参数生效', async () => {
-    const res = await request(server).get('/articles?page=1&pageSize=1').expect(200);
+    const res = await request(server)
+      .get('/articles?page=1&pageSize=1')
+      .expect(200);
     expect(res.body.data).toHaveLength(1);
-    expect(res.body.meta).toMatchObject({ page: 1, pageSize: 1, total: 2, totalPages: 2 });
+    expect(res.body.meta).toMatchObject({
+      page: 1,
+      pageSize: 1,
+      total: 2,
+      totalPages: 2,
+    });
   });
 });

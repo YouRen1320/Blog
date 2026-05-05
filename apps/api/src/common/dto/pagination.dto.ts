@@ -32,7 +32,12 @@ export interface PaginatedResult<T> {
   };
 }
 
-export function paginate<T>(data: T[], total: number, page: number, pageSize: number): PaginatedResult<T> {
+export function paginate<T>(
+  data: T[],
+  total: number,
+  page: number,
+  pageSize: number,
+): PaginatedResult<T> {
   return {
     data,
     meta: {
