@@ -1,4 +1,5 @@
 <template>
+  <!-- /comments — admin comment moderation page (approve / reject / delete). -->
   <!--
     /comments —— 评论审核:
     · 顶部 hero 显示当前过滤的状态 + 计数,提供 status 切换

@@ -1,6 +1,6 @@
+# V1.3 起 docker build 直接 COPY `.output`,所以不再 ignore 它
 node_modules
 .nuxt
-.output
 *.log
 .env
 .env.*

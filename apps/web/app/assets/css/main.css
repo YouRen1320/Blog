@@ -1,5 +1,14 @@
 @import "tailwindcss";
 
+/*
+  V1.3 部署修复：
+  web 端实际不用任何 tailwind 工具类(全是 scoped CSS),但 tailwind 4 的
+  oxide 默认扫描 .vue 文件,在 docker build 时遇到含中文注释的文件会触发
+  Rust panic(@tailwindcss/oxide vue.rs UTF-8 byte-slice bug,4.1/4.2 都没修)。
+  显式排除 .vue 文件:tailwind 不扫描它们就不会 panic,样式不受影响。
+*/
+@source not "**/*.vue";
+
 /* === v3 设计变量 —— chlo.is 风格：暖灰底、浮起卡片、药丸导航 ===
    颜色与字体来自设计包中的 tokens-v3.css；
    暗色模式通过 useTheme() 给 <html> 切换 `.dark` 类来生效。 */

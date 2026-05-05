@@ -16,7 +16,10 @@ import type { Request } from 'express';
 import { CommentStatus } from '@prisma/client';
 import { CommentsService } from './comments.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
-import { UpdateCommentStatusDto } from './dto/update-comment-status.dto';
+import {
+  UpdateCommentStatusDto,
+  CommentListQueryDto,
+} from './dto/update-comment-status.dto';
 import { PaginationQueryDto } from '../../common/dto/pagination.dto';
 import { Public } from '../../common/decorators/public.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -59,7 +62,7 @@ export class AdminCommentsController {
   constructor(private readonly service: CommentsService) {}
 
   @Get()
-  list(@Query() query: PaginationQueryDto & { status?: CommentStatus }) {
+  list(@Query() query: CommentListQueryDto) {
     return this.service.listAdmin(query);
   }
 

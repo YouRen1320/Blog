@@ -47,14 +47,18 @@ services:
 
   web:
     build:
-      context: .
-      dockerfile: apps/web/Dockerfile
+      # build context 收紧到 apps/web,只 COPY 已 build 的 .output;
+      # 详细原因看 apps/web/Dockerfile 顶部注释
+      context: ./apps/web
+      dockerfile: Dockerfile
     restart: unless-stopped
     depends_on:
       api:
         condition: service_healthy
     environment:
       NUXT_PUBLIC_API_BASE: https://www.iyouren.top/api
+      # sitemap.xml / feed.xml / og:url 等需要对外完整 URL
+      NUXT_PUBLIC_SITE_URL: https://www.iyouren.top
       PORT: 3000
 
   admin:

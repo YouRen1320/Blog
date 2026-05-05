@@ -1,10 +1,5 @@
 <template>
-  <!--
-    文章详情页底部的评论区。
-    - 上半:已审核评论列表(SSR + 客户端共享同一份 useFetch)
-    - 下半:匿名评论表单(昵称 + 邮箱 + 正文)
-    - 提交成功后清空表单,显示 PENDING 提示;不直接把新评论插到列表(等管理员审核)
-  -->
+  <!-- Article comment section: list APPROVED + anonymous submit form. -->
   <section class="comments">
     <header class="comments-head">
       <h2 class="cn">评论</h2>

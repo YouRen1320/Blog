@@ -7,6 +7,7 @@ import { ArticleStatus, CommentStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { paginate, PaginationQueryDto } from '../../common/dto/pagination.dto';
 import { CreateCommentDto } from './dto/create-comment.dto';
+import { CommentListQueryDto } from './dto/update-comment-status.dto';
 
 /**
  * 评论 service。
@@ -50,16 +51,15 @@ export class CommentsService {
       articleId: article.id,
       status: CommentStatus.APPROVED,
     };
-    const [total, data] = await this.prisma.$transaction([
-      this.prisma.comment.count({ where }),
-      this.prisma.comment.findMany({
-        where,
-        select: publicCommentSelect,
-        orderBy: { createdAt: 'asc' }, // 旧 → 新,符合时间叙事
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-      }),
-    ]);
+    // 同 listAdmin,避开 $transaction batch + self-relation 的 Prisma 6.19 bug
+    const total = await this.prisma.comment.count({ where });
+    const data = await this.prisma.comment.findMany({
+      where,
+      select: publicCommentSelect,
+      orderBy: { createdAt: 'asc' }, // 旧 → 新,符合时间叙事
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    });
     return paginate(data, total, page, pageSize);
   }
 
@@ -113,23 +113,23 @@ export class CommentsService {
 
   // ─── admin 端 ───────────────────────────────
 
-  async listAdmin(
-    query: PaginationQueryDto & { status?: CommentStatus },
-  ) {
+  async listAdmin(query: CommentListQueryDto) {
     const { page, pageSize, status } = query;
     const where: Prisma.CommentWhereInput = status ? { status } : {};
-    const [total, data] = await this.prisma.$transaction([
-      this.prisma.comment.count({ where }),
-      this.prisma.comment.findMany({
-        where,
-        include: {
-          article: { select: { id: true, title: true, slug: true } },
-        },
-        orderBy: { createdAt: 'desc' }, // 新 → 旧,审核优先级
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-      }),
-    ]);
+    // 不用 $transaction([count, findMany]) 的 batch 模式 ——
+    // Prisma 6.19 在含 self-relation(Comment.parent) 的 model 上跑这个 batch 时,
+    // 偶发把 findMany 的 skip 参数误判到 count 的 schema 上,报
+    // "Argument `skip` is missing" 假错误。改成顺序两次 await 避开
+    const total = await this.prisma.comment.count({ where });
+    const data = await this.prisma.comment.findMany({
+      where,
+      include: {
+        article: { select: { id: true, title: true, slug: true } },
+      },
+      orderBy: { createdAt: 'desc' }, // 新 → 旧,审核优先级
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    });
     return paginate(data, total, page, pageSize);
   }
 
