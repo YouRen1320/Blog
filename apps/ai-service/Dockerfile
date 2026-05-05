@@ -4,13 +4,14 @@
 FROM python:3.12-slim AS builder
 WORKDIR /app
 
-# pip 走清华源(中国大陆境内构建快得多)+ apt 走清华源
-# 阿里云国外源默认连接不畅,Tsinghua 镜像中国境内 100MB/s 级
-RUN echo 'deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm main contrib non-free non-free-firmware' > /etc/apt/sources.list && \
-    echo 'deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm-updates main contrib non-free non-free-firmware' >> /etc/apt/sources.list && \
-    echo 'deb https://mirrors.tuna.tsinghua.edu.cn/debian-security bookworm-security main contrib non-free non-free-firmware' >> /etc/apt/sources.list
+# 阿里云内网镜像 —— 从 Aliyun ECS 走自家骨干网,不出公网,远比 Tsinghua HTTPS 快
+# (阿里云 Linux 3 镜像默认就用这个,在容器里也走它)
+RUN echo 'deb http://mirrors.aliyun.com/debian/ bookworm main contrib non-free non-free-firmware' > /etc/apt/sources.list && \
+    echo 'deb http://mirrors.aliyun.com/debian/ bookworm-updates main contrib non-free non-free-firmware' >> /etc/apt/sources.list && \
+    echo 'deb http://mirrors.aliyun.com/debian-security bookworm-security main contrib non-free non-free-firmware' >> /etc/apt/sources.list
 
-ENV PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple \
+ENV PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/ \
+    PIP_TRUSTED_HOST=mirrors.aliyun.com \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
 # 系统工具
