@@ -194,6 +194,54 @@ export class AiService {
   }
 
   /**
+   * 编辑器内联 AI 流式透传:不落库,只把 ai-service 的 SSE 字节 pipe 给前端。
+   * 前端自己决定怎么把流式文本塞到 textarea(替换选区 / 追加光标 / 写到 title 字段)。
+   */
+  async streamInline(body: unknown, res: ExpressResponse) {
+    const baseUrl =
+      this.config.get<string>('AI_SERVICE_BASE_URL') ?? 'http://127.0.0.1:8001';
+
+    res.status(200);
+    res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders?.();
+
+    try {
+      const upstream = await fetch(`${baseUrl}/generate/inline`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!upstream.ok || !upstream.body) {
+        res.write(
+          `event: error\ndata: ${JSON.stringify({
+            message: `ai-service /inline returned ${upstream.status}`,
+          })}\n\n`,
+        );
+        res.end();
+        return;
+      }
+      const reader = upstream.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        res.write(decoder.decode(value, { stream: true }));
+      }
+    } catch (err) {
+      const e = err as Error;
+      this.logger.error('streamInline failed', e);
+      res.write(
+        `event: error\ndata: ${JSON.stringify({ message: `ai-service 不可用: ${e.message}` })}\n\n`,
+      );
+    } finally {
+      res.end();
+    }
+  }
+
+  /**
    * HTTP 调 Python 服务。
    * - 用 Node 18+ 自带 fetch + AbortController 防止 LLM 慢导致请求挂死
    * - 90s 上限(LLM 长内容生成 30-60s 常见,留余量)

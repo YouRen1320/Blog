@@ -41,4 +41,16 @@ export class AiController {
   ) {
     await this.ai.streamDraft(user.id, dto, res);
   }
+
+  /**
+   * 编辑器内联 AI(续写 / 改写 / 扩写 / 摘要 / 起标题)。
+   * body 不走 NestJS DTO 校验,直接透传给 ai-service —— InlineRequest schema 在 Python 端校验。
+   * 这种"中间人 SSE"用 @Body() 接 unknown + @Res() 自己写流即可。
+   * ai 档限流 10/min,跟非流式生成共享 quota。
+   */
+  @Throttle({ ai: { limit: 10, ttl: 60_000 } })
+  @Post('inline')
+  async inline(@Body() body: unknown, @Res() res: ExpressResponse) {
+    await this.ai.streamInline(body, res);
+  }
 }

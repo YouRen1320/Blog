@@ -40,8 +40,10 @@
         </div>
 
         <textarea
+          ref="contentRef"
           v-model="post.content"
           class="content-area"
+          :readonly="ai.running"
           placeholder="正文(支持 Markdown,前台用 markdown-it 渲染)"
         />
       </section>
@@ -50,10 +52,30 @@
         <div class="mono section-kicker">PUBLISH</div>
         <p v-if="error" class="error">{{ error }}</p>
         <div class="actions">
-          <button class="primary" type="button" :disabled="saving" @click="onSave">{{ saving ? '保存中…' : '保存' }}</button>
-          <button v-if="post.status !== 'PUBLISHED'" class="ghost" type="button" :disabled="saving" @click="onPublish">发布</button>
-          <button v-else class="ghost" type="button" :disabled="saving" @click="onUnpublish">下线</button>
-          <button v-if="props.id" class="ghost danger" type="button" @click="onDelete">删除</button>
+          <button class="primary" type="button" :disabled="saving || ai.running" @click="onSave">{{ saving ? '保存中…' : '保存' }}</button>
+          <button v-if="post.status !== 'PUBLISHED'" class="ghost" type="button" :disabled="saving || ai.running" @click="onPublish">发布</button>
+          <button v-else class="ghost" type="button" :disabled="saving || ai.running" @click="onUnpublish">下线</button>
+          <button v-if="props.id" class="ghost danger" type="button" :disabled="ai.running" @click="onDelete">删除</button>
+        </div>
+
+        <!--
+          AI ASSIST:5 个内联操作,统一走 SSE 流。
+          - 起标题 / 摘要:整篇文章作 context,流式覆写对应字段
+          - 续写:不需要选中,在光标位置插入(无光标信息时追加文末)
+          - 改写 / 扩写:必须有选中,流式替换选区
+          流式期间整个编辑器其他按钮禁用 + content textarea readonly,
+          避免用户手输跟 AI 流冲突。
+        -->
+        <div class="mono section-kicker accent">✦ AI ASSIST</div>
+        <p v-if="ai.message" class="ai-msg" :class="ai.kind">{{ ai.message }}</p>
+        <div class="ai-row">
+          <button class="ghost ai-btn" type="button" :disabled="ai.running" @click="onAi('title')">起标题</button>
+          <button class="ghost ai-btn" type="button" :disabled="ai.running" @click="onAi('summarize')">摘要</button>
+        </div>
+        <div class="ai-row">
+          <button class="ghost ai-btn" type="button" :disabled="ai.running" @click="onAi('continue')">续写</button>
+          <button class="ghost ai-btn" type="button" :disabled="ai.running" @click="onAi('rewrite')">改写选中</button>
+          <button class="ghost ai-btn" type="button" :disabled="ai.running" @click="onAi('expand')">扩写选中</button>
         </div>
 
         <div class="mono section-kicker">META</div>
@@ -74,6 +96,7 @@ import AdminShell from '../components/AdminShell.vue'
 import { createArticle, deleteArticle, getArticle, publishArticle, unpublishArticle, updateArticle, type ArticleStatus } from '../api/articles'
 import { listCategories, type Category } from '../api/categories'
 import { listTags, type Tag } from '../api/tags'
+import { streamInlineAi, type InlineAction } from '../api/ai'
 import { extractErrorMessage } from '../composables/useApiError'
 
 // :id 由 router 的 props: true 注入,/editor 时为 undefined
@@ -219,6 +242,90 @@ async function onDelete() {
     router.replace('/articles')
   } catch (e) { error.value = extractErrorMessage(e) }
 }
+
+// ── 内联 AI(5 个 action,SSE 流式)──────────────────────────
+const contentRef = ref<HTMLTextAreaElement | null>(null)
+const ai = reactive({
+  running: false,
+  message: '' as string,
+  kind: 'info' as 'info' | 'error' | 'success',
+})
+
+function setAiMsg(kind: 'info' | 'error' | 'success', message: string) {
+  ai.kind = kind
+  ai.message = message
+}
+
+async function onAi(action: InlineAction) {
+  if (ai.running) return
+
+  // 拿当前选中范围。textarea 可能没 focus,fallback 到末尾
+  const ta = contentRef.value
+  const selStart = ta?.selectionStart ?? post.content.length
+  const selEnd = ta?.selectionEnd ?? post.content.length
+  const selection = post.content.slice(selStart, selEnd)
+  const hasSelection = selection.length > 0
+
+  // 不同 action 的输入校验
+  if ((action === 'rewrite' || action === 'expand') && !hasSelection) {
+    setAiMsg('error', `${action === 'rewrite' ? '改写' : '扩写'}需要先在正文里选中一段文字`)
+    return
+  }
+  if ((action === 'summarize' || action === 'title') && !post.content.trim()) {
+    setAiMsg('error', '正文为空,无法基于全文生成')
+    return
+  }
+
+  ai.running = true
+  setAiMsg('info', `AI 正在${actionLabel(action)}…`)
+
+  // 把原始 content 的 before / after 两段在流前固定下来 ——
+  // 每个 chunk 来时只更新中间累积部分,简单且正确,不需要算 offset
+  const beforeContent = post.content.slice(0, selStart)
+  // continue 时 selEnd == selStart,after 就是光标后整段;
+  // rewrite/expand 时 selEnd > selStart,after 是选区之后的内容
+  const afterContent = post.content.slice(selEnd)
+
+  // 把 LLM 上下文准备好(发请求时 content 已经被改过,这里用原文)
+  const fullContextForAi = post.content
+  // title / summarize 字段先清空,流式覆写
+  if (action === 'title') post.title = ''
+  else if (action === 'summarize') post.summary = ''
+  // content 类操作:先删掉选区(改写 / 扩写)或保留(续写),让 acc 从空开始拼
+  if (action === 'rewrite' || action === 'expand' || action === 'continue') {
+    post.content = beforeContent + afterContent
+  }
+
+  let acc = ''
+  try {
+    await streamInlineAi(
+      {
+        action,
+        context: fullContextForAi,
+        selection: hasSelection ? selection : undefined,
+      },
+      (e) => {
+        if (e.type === 'chunk') {
+          acc += e.text
+          if (action === 'title') post.title += e.text
+          else if (action === 'summarize') post.summary += e.text
+          else post.content = beforeContent + acc + afterContent
+        } else if (e.type === 'error') {
+          setAiMsg('error', e.message)
+        }
+      },
+    )
+    if (ai.kind !== 'error') setAiMsg('success', `AI ${actionLabel(action)}完成`)
+  } catch (e) {
+    setAiMsg('error', extractErrorMessage(e, 'AI 调用失败'))
+  } finally {
+    ai.running = false
+  }
+}
+
+function actionLabel(a: InlineAction): string {
+  return { title: '起标题', summarize: '生成摘要', continue: '续写', rewrite: '改写', expand: '扩写' }[a]
+}
 </script>
 
 <style scoped>
@@ -265,6 +372,21 @@ async function onDelete() {
 
 .aside { padding: 24px 22px; display: flex; flex-direction: column; gap: 18px; align-self: start; position: sticky; top: 24px; }
 .section-kicker { font-size: 10px; letter-spacing: 0.16em; color: var(--ink-3); margin-bottom: 4px; }
+.section-kicker.accent { color: var(--accent); }
+
+.ai-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.ai-btn { flex: 1 1 auto; padding: 8px 10px; font-size: 11px; }
+
+.ai-msg {
+  font-size: 11px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  margin: 0 0 4px;
+  line-height: 1.5;
+}
+.ai-msg.info    { background: var(--bg); color: var(--ink-2); }
+.ai-msg.error   { background: #fdecec; color: #b3261e; }
+.ai-msg.success { background: #e8f5ee; color: #1f7a3e; }
 
 .actions { display: flex; flex-direction: column; gap: 8px; }
 .primary { background: var(--ink); color: var(--bg); border: 0; border-radius: 10px; padding: 10px 14px; font-size: 12px; font-weight: 500; cursor: pointer; }

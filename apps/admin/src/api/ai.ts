@@ -111,3 +111,91 @@ export async function streamAiDraft(
   }
   onEvent({ type: 'done' })
 }
+
+/**
+ * 编辑器内联 AI 操作类型。跟 ai-service InlineRequest.action 一一对应。
+ */
+export type InlineAction = 'continue' | 'rewrite' | 'expand' | 'summarize' | 'title'
+
+export interface InlineInput {
+  action: InlineAction
+  context: string
+  selection?: string
+  instruction?: string
+}
+
+export type InlineEvent =
+  | { type: 'chunk'; text: string }
+  | { type: 'error'; message: string }
+  | { type: 'done' }
+
+/**
+ * 内联 AI 流。比 streamAiDraft 简单:**只有 chunk 和 done**,不需要 saved。
+ * 前端自己决定怎么把 chunk 拼回 textarea(替换选区 / 写到字段 / 追加光标)。
+ */
+export async function streamInlineAi(
+  input: InlineInput,
+  onEvent: (e: InlineEvent) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  const token = localStorage.getItem('blog_admin_token')
+  const baseUrl = apiClient.defaults.baseURL ?? ''
+  const res = await fetch(`${baseUrl}/admin/ai/inline`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(input),
+    signal,
+  })
+  if (!res.ok || !res.body) {
+    let msg = `HTTP ${res.status}`
+    try {
+      const body = (await res.json()) as { message?: string }
+      if (body.message) msg = body.message
+    } catch {
+      /* keep status */
+    }
+    onEvent({ type: 'error', message: msg })
+    return
+  }
+
+  const reader = res.body.getReader()
+  const decoder = new TextDecoder('utf-8')
+  let buffer = ''
+  while (true) {
+    const { value, done } = await reader.read()
+    if (done) break
+    buffer += decoder.decode(value, { stream: true })
+    let idx: number
+    while ((idx = buffer.indexOf('\n\n')) !== -1) {
+      const block = buffer.slice(0, idx)
+      buffer = buffer.slice(idx + 2)
+      let eventName = ''
+      let dataStr = ''
+      for (const line of block.split('\n')) {
+        if (line.startsWith('event:')) eventName = line.slice(6).trim()
+        else if (line.startsWith('data:')) dataStr += line.slice(5).trim()
+      }
+      if (!eventName) continue
+      try {
+        if (eventName === 'chunk') {
+          const data = JSON.parse(dataStr) as { text: string }
+          onEvent({ type: 'chunk', text: data.text })
+        } else if (eventName === 'error') {
+          const data = JSON.parse(dataStr) as { message?: string }
+          onEvent({ type: 'error', message: data.message ?? '未知错误' })
+        } else if (eventName === 'done') {
+          onEvent({ type: 'done' })
+        }
+      } catch (e) {
+        onEvent({
+          type: 'error',
+          message: `解析事件失败: ${(e as Error).message}`,
+        })
+      }
+    }
+  }
+  onEvent({ type: 'done' })
+}
