@@ -200,4 +200,24 @@ if (error.value) {
 
 .error-page { text-align: center; padding-top: 120px; }
 .lede { font-size: 13px; color: var(--ink-2); margin-bottom: 32px; }
+
+/* 移动端适配:< 720 收紧 padding,< 480 字号一段缩,正文图片自适应 */
+@media (max-width: 720px) {
+  .page { padding: 36px 20px 60px; }
+  .title { font-size: 28px; }
+  .subtitle { font-size: 14px; }
+  .meta { gap: 12px; font-size: 9px; margin-bottom: 24px; }
+  .hero { padding: 16px; margin-bottom: 22px; }
+  .prose :deep(p) { font-size: 15px; line-height: 1.8; }
+  .prose :deep(h2) { font-size: 20px; margin: 28px 0 12px; }
+  .prose :deep(h3) { font-size: 17px; margin: 22px 0 10px; }
+  .prose :deep(pre) { padding: 12px 14px; font-size: 12px; }
+  .prose :deep(img) { max-width: 100%; height: auto; }
+}
+
+@media (max-width: 480px) {
+  .page { padding: 24px 16px 48px; }
+  .title { font-size: 22px; line-height: 1.3; }
+  .meta { display: flex; flex-wrap: wrap; }
+}
 </style>

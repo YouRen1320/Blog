@@ -63,4 +63,14 @@ if (error.value) {
 .row-title { font-size: 16px; color: var(--ink); text-decoration: none; font-weight: 500; }
 .row-title:hover { color: var(--accent); }
 .row-month { font-size: 9px; letter-spacing: 0.16em; color: var(--ink-3); text-align: right; }
+
+@media (max-width: 720px) {
+  .page { padding: 36px 20px 60px; }
+  .row { grid-template-columns: 56px 1fr; gap: 12px; }
+  .row-month { display: none; }
+  .row-title { font-size: 15px; }
+}
+@media (max-width: 480px) {
+  .page { padding: 24px 16px 48px; }
+}
 </style>
