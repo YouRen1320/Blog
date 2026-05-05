@@ -21,6 +21,7 @@ from langgraph.graph import END, START, StateGraph
 from app.core.config import get_settings
 from app.schemas.draft import DraftRequest, DraftResponse
 from app.services.llm_router import acompletion
+from app.services.reranker import rerank
 from app.services.retriever import RetrievedArticle, retrieve
 
 log = logging.getLogger(__name__)
@@ -68,15 +69,36 @@ _LENGTH = {"short": "约 600-900 字", "medium": "约 1300-1700 字", "long": "�
 
 # ── Nodes ──────────────────────────────────────────────
 def retrieve_node(state: AgentState) -> AgentState:
-    """对用户 prompt 做 RAG,把 top-K 相关旧文写进 state。"""
+    """
+    对用户 prompt 做 RAG,把候选旧文写进 state。
+    扩大召回到 10 篇,放低 min_similarity(给 reranker 更大空间);精排到 top 3 在 rerank_node 里做。
+    """
     req = state["request"]
     try:
-        results = retrieve(req.prompt, top_k=3, min_similarity=0.5)
-        log.info("[retrieve] %d articles above threshold", len(results))
+        results = retrieve(req.prompt, top_k=10, min_similarity=0.35)
+        log.info("[retrieve] %d candidates above threshold", len(results))
         return {"retrieved": results}
     except Exception as e:
         log.warning("[retrieve] failed: %s — continuing without context", e)
         return {"retrieved": []}
+
+
+def rerank_node(state: AgentState) -> AgentState:
+    """
+    用 cross-encoder(BGE-reranker-base)对 retrieve 候选做精排,留 top 3。
+    候选 ≤1 条时直接 passthrough,reranker 没意义还多花首次加载时间。
+    """
+    candidates = state.get("retrieved", [])
+    if len(candidates) <= 1:
+        return {"retrieved": candidates}
+    try:
+        top = rerank(state["request"].prompt, candidates, top_n=3)
+        log.info("[rerank] kept top %d", len(top))
+        return {"retrieved": top}
+    except Exception as e:
+        # rerank 是增益不是必需,失败时回退用召回结果的前 3 个
+        log.warning("[rerank] failed: %s — falling back to retrieve order", e)
+        return {"retrieved": candidates[:3]}
 
 
 async def generate_node(state: AgentState) -> AgentState:
@@ -140,11 +162,14 @@ async def generate_node(state: AgentState) -> AgentState:
 
 # ── Graph 构建 ─────────────────────────────────────────
 def _build_graph():
+    """START → retrieve(top10)→ rerank(top3)→ generate → END"""
     g = StateGraph(AgentState)
     g.add_node("retrieve", retrieve_node)
+    g.add_node("rerank", rerank_node)
     g.add_node("generate", generate_node)
     g.add_edge(START, "retrieve")
-    g.add_edge("retrieve", "generate")
+    g.add_edge("retrieve", "rerank")
+    g.add_edge("rerank", "generate")
     g.add_edge("generate", END)
     return g.compile()
 

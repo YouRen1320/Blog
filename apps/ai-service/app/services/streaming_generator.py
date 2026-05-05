@@ -38,6 +38,7 @@ from typing import AsyncIterator
 from app.core.config import get_settings
 from app.schemas.draft import DraftRequest, DraftResponse
 from app.services.llm_router import acompletion
+from app.services.reranker import rerank
 from app.services.retriever import retrieve
 
 log = logging.getLogger(__name__)
@@ -144,10 +145,11 @@ async def stream_article(req: DraftRequest) -> AsyncIterator[str]:
         yield _sse("done", {})
         return
 
-    # RAG 检索(失败容错)
+    # RAG 检索 + 二次精排(失败容错,跟 LangGraph agent 保持一致)
     rag_block = ""
     try:
-        retrieved = retrieve(req.prompt, top_k=3, min_similarity=0.5)
+        candidates = retrieve(req.prompt, top_k=10, min_similarity=0.35)
+        retrieved = rerank(req.prompt, candidates, top_n=3) if len(candidates) > 1 else candidates
         if retrieved:
             rag_block = "\n\n## 你已有的相关旧文(参考语气和已写过的内容)\n"
             for i, art in enumerate(retrieved, 1):
@@ -156,9 +158,9 @@ async def stream_article(req: DraftRequest) -> AsyncIterator[str]:
                     f"摘要:{art.summary or '(无)'}\n"
                     f"片段:\n{art.content[:600]}...\n"
                 )
-            log.info("[stream] RAG injected %d articles", len(retrieved))
+            log.info("[stream] RAG retrieved=%d → reranked=%d", len(candidates), len(retrieved))
     except Exception as e:
-        log.warning("[stream] RAG retrieve failed: %s", e)
+        log.warning("[stream] RAG retrieve / rerank failed: %s", e)
 
     system = (
         "你是 Youren 的博客写作助手。请按以下 markdown 格式输出,**不要任何前后缀**:\n\n"

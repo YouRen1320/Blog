@@ -11,6 +11,7 @@ import logging
 from app.core.config import get_settings
 from app.schemas.draft import DraftRequest, DraftResponse
 from app.services.llm_router import acompletion
+from app.services.reranker import rerank
 from app.services.retriever import retrieve
 
 log = logging.getLogger(__name__)
@@ -68,10 +69,12 @@ async def generate_article_draft(req: DraftRequest) -> DraftResponse:
         return _mock_draft(req)
 
     # AI2-04 起:RAG 检索作者历史文章,作为风格 + 知识参考塞进 prompt
+    # V1.4-3 起:retrieve 扩到 top10 + rerank 精排到 top3
     # 失败时不阻塞生成 —— 检索是增益,不是必需
     rag_context = ""
     try:
-        retrieved = retrieve(req.prompt, top_k=3, min_similarity=0.5)
+        candidates = retrieve(req.prompt, top_k=10, min_similarity=0.35)
+        retrieved = rerank(req.prompt, candidates, top_n=3) if len(candidates) > 1 else candidates
         if retrieved:
             rag_context = "\n\n## 你已有的相关旧文(参考语气 + 已写过的内容,不要重复造)\n"
             for i, art in enumerate(retrieved, 1):
@@ -80,7 +83,7 @@ async def generate_article_draft(req: DraftRequest) -> DraftResponse:
                     f"摘要:{art.summary or '(无)'}\n"
                     f"正文片段:\n{art.content[:600]}...\n"
                 )
-            log.info("RAG: injecting %d articles into context (total %d chars)", len(retrieved), len(rag_context))
+            log.info("RAG: retrieved=%d → reranked=%d, context=%d chars", len(candidates), len(retrieved), len(rag_context))
     except Exception as e:
         log.warning("RAG retrieve failed, generating without context: %s", e)
 
