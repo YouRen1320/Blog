@@ -60,6 +60,15 @@ class Settings(BaseSettings):
         description="开发期为 true 时走假数据,不调外部 API,避免烧 quota",
     )
 
+    # LangFuse 追踪(可选,LiteLLM 自动接入)
+    # 三个 env 都设了才启用;否则 router 不挂 callback,无副作用
+    LANGFUSE_PUBLIC_KEY: str = Field("", description="LangFuse public key (pk_lf_...)")
+    LANGFUSE_SECRET_KEY: str = Field("", description="LangFuse secret key (sk_lf_...)")
+    LANGFUSE_HOST: str = Field(
+        default="https://cloud.langfuse.com",
+        description="LangFuse host;自托管或 EU 地区时改",
+    )
+
     # AI2-04 起 RAG 需要直读 articles 表
     DATABASE_URL: str = Field(
         default="postgresql://blog:blog@localhost:5432/blog",

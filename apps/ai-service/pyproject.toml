@@ -12,6 +12,9 @@ dependencies = [
     # 多模型路由:统一接口跑 OpenAI / Anthropic / Gemini / Qwen / MiMo,
     # 不用为每个 provider 写一份 SDK 调用代码
     "litellm>=1.55.0",
+    # Prompt / 调用追踪。LiteLLM 自带 langfuse 集成,设了 env + callback 就自动发,
+    # 业务代码 0 侵入。云免费 tier 就够小博客用
+    "langfuse>=2.55.0",
     # 环境变量解析 + 类型校验
     "pydantic>=2.8.0",
     "pydantic-settings>=2.5.0",

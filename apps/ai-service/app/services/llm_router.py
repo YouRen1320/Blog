@@ -17,6 +17,7 @@ LLM 多模型路由 —— 用 LiteLLM 把 OpenAI / Anthropic / Gemini / Qwen / 
 """
 
 import logging
+import os
 from typing import Any
 
 import litellm
@@ -28,6 +29,31 @@ log = logging.getLogger(__name__)
 # 让 LiteLLM 静默忽略某 provider 不支持的参数(例如 max_completion_tokens 在
 # 某些非 OpenAI provider 下不识别),避免业务侧到处写 if/else
 litellm.drop_params = True
+
+
+def _maybe_enable_langfuse() -> None:
+    """
+    如果配了 LANGFUSE 三个 key 就挂 callback。LiteLLM 内置 langfuse handler,
+    每次 acompletion 后自动把 prompt/response/token/latency 发到 LangFuse,
+    失败也发(failure_callback)。业务代码不需要任何改动。
+
+    LiteLLM 通过 LANGFUSE_PUBLIC_KEY / LANGFUSE_SECRET_KEY / LANGFUSE_HOST
+    三个 process env 读取,所以这里需要把 settings 同步到 os.environ。
+    """
+    s = get_settings()
+    if not (s.LANGFUSE_PUBLIC_KEY and s.LANGFUSE_SECRET_KEY):
+        return
+    os.environ["LANGFUSE_PUBLIC_KEY"] = s.LANGFUSE_PUBLIC_KEY
+    os.environ["LANGFUSE_SECRET_KEY"] = s.LANGFUSE_SECRET_KEY
+    os.environ["LANGFUSE_HOST"] = s.LANGFUSE_HOST
+    if "langfuse" not in litellm.success_callback:
+        litellm.success_callback.append("langfuse")
+    if "langfuse" not in litellm.failure_callback:
+        litellm.failure_callback.append("langfuse")
+    log.info("LangFuse tracing enabled (host=%s)", s.LANGFUSE_HOST)
+
+
+_maybe_enable_langfuse()
 
 
 def _resolve_model() -> tuple[str, dict[str, Any]]:
