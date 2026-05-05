@@ -57,6 +57,36 @@ export class PublicService {
     return article;
   }
 
+  /**
+   * V1.20:相关文章 —— 同分类下最新 3 篇(排除当前)。
+   * 没分类的文章退化成最新 3 篇。
+   * 字段尽量精简,只够 RelatedCard 渲染用。
+   */
+  async relatedArticles(slug: string) {
+    const current = await this.prisma.article.findFirst({
+      where: { slug, status: ArticleStatus.PUBLISHED },
+      select: { id: true, categoryId: true },
+    });
+    if (!current) return [];
+    const where: Prisma.ArticleWhereInput = {
+      status: ArticleStatus.PUBLISHED,
+      id: { not: current.id },
+    };
+    if (current.categoryId) where.categoryId = current.categoryId;
+    return this.prisma.article.findMany({
+      where,
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        summary: true,
+        publishedAt: true,
+      },
+      orderBy: { publishedAt: 'desc' },
+      take: 3,
+    });
+  }
+
   async listByCategory(slug: string, query: PaginationQueryDto) {
     const category = await this.prisma.category.findUnique({ where: { slug } });
     if (!category) throw new NotFoundException('分类不存在');

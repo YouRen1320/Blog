@@ -41,6 +41,20 @@
 
     <div class="prose cn" v-html="renderedContent" />
 
+    <!-- V1.20:相关文章 —— 同分类下最新 3 篇,引导读者继续看下一篇 -->
+    <section v-if="related && related.length > 0" class="related">
+      <div class="related-head mono">RELATED · 同类阅读</div>
+      <ul class="related-list">
+        <li v-for="r in related" :key="r.id">
+          <NuxtLink :to="`/writing/${r.slug}`" class="related-item">
+            <span class="cn related-title">{{ r.title }}</span>
+            <span v-if="r.summary" class="cn related-summary">{{ r.summary }}</span>
+            <span class="mono related-date">{{ r.publishedAt ? shortDate(r.publishedAt) : '—' }}</span>
+          </NuxtLink>
+        </li>
+      </ul>
+    </section>
+
     <NuxtLink to="/writing" class="back mono">← 返回写作目录</NuxtLink>
   </article>
 
@@ -60,13 +74,15 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import MarkdownIt from 'markdown-it'
 import InkArt from '../../components/InkArt.vue'
 import CommentSection from '../../components/CommentSection.vue'
-import { useArticleBySlug } from '../../composables/useArticles'
+import { useArticleBySlug, useRelatedArticles } from '../../composables/useArticles'
 import { frenchSeason, readingTime, seedFromId, shortDate } from '../../utils/format'
 
 const route = useRoute()
 const slug = route.params.slug as string
 
 const { data: article, error } = await useArticleBySlug(slug)
+// 相关文章并行拉,失败也只是 data 为 null,模板里 v-if 判空即可
+const { data: related } = await useRelatedArticles(slug)
 
 // markdown-it 在 SSR 和 CSR 都能跑;不开 html(防 XSS),开链接和列表
 const md = new MarkdownIt({ html: false, linkify: true, breaks: false })
@@ -229,6 +245,46 @@ onUnmounted(() => {
 .prose :deep(ul), .prose :deep(ol) { padding-left: 24px; margin: 0 0 18px; line-height: 1.85; }
 .prose :deep(a) { color: var(--accent); text-decoration: none; }
 .prose :deep(a:hover) { text-decoration: underline; }
+
+/* V1.20 相关文章块 —— 文章正文之后,返回链接之前 */
+.related {
+  margin-top: 56px;
+  padding-top: 28px;
+  border-top: 1px solid var(--rule);
+}
+.related-head {
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  color: var(--ink-3);
+  margin-bottom: 16px;
+}
+.related-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+.related-item {
+  display: grid;
+  grid-template-columns: 1fr 80px;
+  gap: 14px;
+  align-items: baseline;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--bg);
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.15s ease;
+}
+.related-item:hover { background: var(--card); box-shadow: var(--shadow); }
+.related-title { font-size: 14px; font-weight: 500; color: var(--ink); display: block; }
+.related-summary {
+  display: block;
+  font-size: 12px;
+  color: var(--ink-3);
+  margin-top: 4px;
+  /* 避免长摘要把卡片撑高;两行截断,旧浏览器兼容写在前 */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.related-date { font-size: 10px; color: var(--ink-3); text-align: right; }
 
 .back {
   display: inline-block;

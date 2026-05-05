@@ -46,6 +46,20 @@ export function useArticleBySlug(slug: string) {
   })
 }
 
+// V1.20:相关文章。后端按 categoryId 取最新 3 篇,空数组合法。
+export interface RelatedArticle {
+  id: string
+  title: string
+  slug: string
+  summary: string | null
+  publishedAt: string | null
+}
+export function useRelatedArticles(slug: string) {
+  return useFetch<RelatedArticle[]>(apiUrl(`/articles/${slug}/related`), {
+    key: `related-${slug}`,
+  })
+}
+
 export function useArticlesByCategory(slug: string, query: { page?: number; pageSize?: number } = {}) {
   return useFetch<PaginatedArticles>(apiUrl(`/categories/${slug}/articles`), {
     query,

@@ -32,6 +32,7 @@
 | **V1.17** —— admin 多用户列表打磨 | ✅ 完成 (v1.17.0) | 评论列表批量操作 + AI 评估按钮 + Gravatar | (夜班连续 minor) |
 | **V1.18** —— admin Articles 显示作者列 | ✅ 完成 (v1.18.0) | ADMIN 看全部时多一列 AUTHOR(@username),USER 看自己不渲染 | 多用户场景区分写作者 |
 | **V1.19** —— admin 待审红点 + web 评论数 | ✅ 完成 (v1.19.0) | AdminShell 给 Comments 加暖红 PENDING badge + 公开列表 _count.comments,首页卡片 💬 N | 双向 UX 推动评论闭环 |
+| **V1.20** —— 相关文章 widget | ✅ 完成 (v1.20.0) | GET /articles/:slug/related 同分类最新 3 篇,web 详情页底部 RELATED block | 增加跳读概率 |
 
 ---
 

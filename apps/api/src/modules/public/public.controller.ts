@@ -36,6 +36,12 @@ export class PublicController {
     return this.service.findArticleBySlug(slug);
   }
 
+  /** V1.20:同分类下最新 3 篇,排除自己。空数组合法。 */
+  @Get('articles/:slug/related')
+  related(@Param('slug') slug: string) {
+    return this.service.relatedArticles(slug);
+  }
+
   @Get('categories/:slug/articles')
   byCategory(@Param('slug') slug: string, @Query() query: PaginationQueryDto) {
     return this.service.listByCategory(slug, query);
