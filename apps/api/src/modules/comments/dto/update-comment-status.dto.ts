@@ -18,3 +18,19 @@ export class CommentListQueryDto extends PaginationQueryDto {
   @IsEnum(CommentStatus, { message: 'status 必须是 PENDING / APPROVED / REJECTED' })
   status?: CommentStatus;
 }
+
+import { IsArray, IsString, ArrayMaxSize, ArrayMinSize } from 'class-validator';
+
+/**
+ * 批量改 status。一次最多 50 条,防止 admin 误操作把全部 PENDING 一次拒了。
+ */
+export class BatchUpdateStatusDto {
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(50, { message: '一次最多 50 条' })
+  @IsString({ each: true })
+  ids!: string[];
+
+  @IsEnum(CommentStatus, { message: 'status 必须是 PENDING / APPROVED / REJECTED' })
+  status!: CommentStatus;
+}

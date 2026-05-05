@@ -40,6 +40,15 @@ export async function updateCommentStatus(id: string, status: CommentStatus) {
   return data
 }
 
+/** 批量改 status。一次最多 50 条(后端 DTO 校验)。 */
+export async function batchUpdateCommentStatus(ids: string[], status: CommentStatus) {
+  const { data } = await apiClient.patch<{ affected: number }>(
+    '/admin/comments/batch-status',
+    { ids, status },
+  )
+  return data
+}
+
 export async function deleteComment(id: string) {
   await apiClient.delete(`/admin/comments/${id}`)
 }

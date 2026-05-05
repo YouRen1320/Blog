@@ -32,6 +32,14 @@
             {{ opt.label }}
           </button>
         </div>
+
+        <!-- 批量操作条:有选中时显示。最多 50 条(后端 DTO 限制)。 -->
+        <div v-if="selectedCount > 0" class="batch">
+          <span class="mono batch-count">已选 {{ selectedCount }} / {{ comments.length }}</span>
+          <button class="primary small" type="button" :disabled="batchBusy" @click="onBatch('APPROVED')">批量通过</button>
+          <button class="ghost small" type="button" :disabled="batchBusy" @click="onBatch('REJECTED')">批量拒绝</button>
+          <button class="link" type="button" @click="clearSelection">清空选择</button>
+        </div>
       </header>
 
       <div v-if="loading" class="card empty">加载中…</div>
@@ -47,6 +55,12 @@
       >
         <header class="item-head">
           <div class="meta">
+            <input
+              type="checkbox"
+              class="select-cb"
+              :checked="selected.has(c.id)"
+              @change="toggleSelect(c.id)"
+            />
             <span class="serif author">{{ c.authorName }}</span>
             <span class="mono email">&lt;{{ c.authorEmail }}&gt;</span>
             <span class="mono ip">IP {{ c.ipAddress || '?' }}</span>
@@ -128,6 +142,7 @@ import AdminShell from '../components/AdminShell.vue'
 import {
   fetchComments,
   updateCommentStatus,
+  batchUpdateCommentStatus,
   deleteComment,
   aiReviewComment,
   type AdminComment,
@@ -166,6 +181,8 @@ async function reload() {
     })
     comments.value = res.data
     meta.value = res.meta
+    // reload 后清掉选中(可能换页 / 换 filter,避免跨页选项被批量误操作)
+    selected.value = new Set()
   } finally {
     loading.value = false
   }
@@ -176,6 +193,38 @@ onMounted(reload)
 // AI 评估缓存:commentId → review;loading 单独 map(不让 review 字段闪)
 const aiReviews = ref<Record<string, CommentAiReview>>({})
 const aiLoading = ref<Record<string, boolean>>({})
+
+// 批量选中状态。Set 比 Array 查/删快;切换 filter 时清空避免跨 page 误操作
+const selected = ref<Set<string>>(new Set())
+const selectedCount = computed(() => selected.value.size)
+const batchBusy = ref(false)
+
+function toggleSelect(id: string) {
+  if (selected.value.has(id)) selected.value.delete(id)
+  else selected.value.add(id)
+  // 触发响应式刷新(直接 mutate Set ref Vue 不会自动检测)
+  selected.value = new Set(selected.value)
+}
+function clearSelection() {
+  selected.value = new Set()
+}
+
+async function onBatch(status: CommentStatus) {
+  const ids = Array.from(selected.value)
+  if (ids.length === 0) return
+  if (status === 'REJECTED' && !confirm(`批量拒绝 ${ids.length} 条评论?`)) return
+  batchBusy.value = true
+  try {
+    const res = await batchUpdateCommentStatus(ids, status)
+    clearSelection()
+    await reload()
+    alert(`已${status === 'APPROVED' ? '通过' : '拒绝'} ${res.affected} 条`)
+  } catch (e) {
+    alert(`批量失败:${(e as Error).message}`)
+  } finally {
+    batchBusy.value = false
+  }
+}
 
 async function onAiReview(c: AdminComment) {
   if (aiLoading.value[c.id] || aiReviews.value[c.id]) return
@@ -242,6 +291,21 @@ const webUrlFor = computed(() => (slug: string) => {
 .lede { font-size: 13px; color: var(--ink-2); margin: 8px 0 0; }
 
 .filters { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+
+.batch {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  margin-top: 12px;
+  background: var(--bg);
+  border-radius: 10px;
+  border: 1px solid var(--accent);
+}
+.batch-count { font-size: 11px; color: var(--accent); letter-spacing: 0.12em; flex: 1 1 auto; }
+
+.select-cb { width: 14px; height: 14px; accent-color: var(--accent); cursor: pointer; }
 .chip {
   background: transparent;
   border: 1px solid var(--rule);

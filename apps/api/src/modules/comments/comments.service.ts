@@ -207,6 +207,18 @@ export class CommentsService {
     return this.prisma.comment.update({ where: { id }, data: { status } });
   }
 
+  /**
+   * 批量改 status。最多 50 条(DTO 校验)。
+   * 用 updateMany,一次 SQL,比循环 update 快很多。
+   */
+  async batchUpdateStatus(ids: string[], status: CommentStatus) {
+    const res = await this.prisma.comment.updateMany({
+      where: { id: { in: ids } },
+      data: { status },
+    });
+    return { affected: res.count };
+  }
+
   async remove(id: string) {
     const exists = await this.prisma.comment.findUnique({ where: { id } });
     if (!exists) throw new NotFoundException('评论不存在');

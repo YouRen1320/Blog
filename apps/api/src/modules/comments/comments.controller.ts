@@ -20,6 +20,7 @@ import { CreateCommentDto } from './dto/create-comment.dto';
 import {
   UpdateCommentStatusDto,
   CommentListQueryDto,
+  BatchUpdateStatusDto,
 } from './dto/update-comment-status.dto';
 import { PaginationQueryDto } from '../../common/dto/pagination.dto';
 import { Public } from '../../common/decorators/public.decorator';
@@ -78,6 +79,13 @@ export class AdminCommentsController {
   @Post(':id/ai-review')
   aiReview(@Param('id') id: string) {
     return this.service.aiReview(id, this.config);
+  }
+
+  /** 批量改 status。一次最多 50 条(DTO 校验)。返 { affected: N }。
+   *  必须放在 `:id/status` 之前,避免 NestJS 把 "batch-status" 匹配成 :id。 */
+  @Patch('batch-status')
+  batchStatus(@Body() dto: BatchUpdateStatusDto) {
+    return this.service.batchUpdateStatus(dto.ids, dto.status);
   }
 
   @Patch(':id/status')
