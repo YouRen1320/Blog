@@ -11,7 +11,7 @@
 
       <nav class="nav">
         <RouterLink
-          v-for="item in items"
+          v-for="item in visibleItems"
           :key="item.key"
           :to="item.to"
           class="nav-item"
@@ -43,23 +43,26 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useTheme } from '../composables/useTheme'
+import { useAuthStore } from '../stores/auth'
 
 defineProps<{
   // 当前激活的导航项 key；与下方 items 对应。
-  active: 'dashboard' | 'writing' | 'drafts' | 'tags' | 'cats' | 'comments' | 'settings'
+  active: 'dashboard' | 'writing' | 'drafts' | 'tags' | 'cats' | 'comments' | 'users' | 'settings'
 }>()
 
 const { dark, toggle } = useTheme()
 
 // 主导航数据：badge 为可选数字，用来在 AI 草稿这类"待处理"项上显示数量。
 type NavItem = {
-  key: 'dashboard' | 'writing' | 'drafts' | 'tags' | 'cats' | 'comments' | 'settings'
+  key: 'dashboard' | 'writing' | 'drafts' | 'tags' | 'cats' | 'comments' | 'users' | 'settings'
   icon: string
   label: string
   to: string
   badge?: string
+  adminOnly?: boolean
 }
 
 const items: NavItem[] = [
@@ -68,9 +71,16 @@ const items: NavItem[] = [
   { key: 'drafts', icon: '✦', label: 'AI Drafts', to: '/inbox' },
   { key: 'tags', icon: '#', label: 'Tags', to: '/tags' },
   { key: 'cats', icon: '◐', label: 'Categories', to: '/categories' },
-  { key: 'comments', icon: '✉', label: 'Comments', to: '/comments' },
+  { key: 'comments', icon: '✉', label: 'Comments', to: '/comments', adminOnly: true },
+  { key: 'users', icon: '◍', label: 'Users', to: '/users', adminOnly: true },
   { key: 'settings', icon: '⚙', label: 'Settings', to: '/settings' },
 ]
+
+// USER role 看不到 adminOnly 项(comments / users)
+const auth = useAuthStore()
+const visibleItems = computed(() =>
+  items.filter((it) => !it.adminOnly || auth.user?.role === 'ADMIN'),
+)
 </script>
 
 <style scoped>

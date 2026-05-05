@@ -18,6 +18,7 @@ const routes = [
   { path: '/tags', name: 'tags', component: () => import('../views/Tags.vue') },
   { path: '/categories', name: 'categories', component: () => import('../views/Categories.vue') },
   { path: '/comments', name: 'comments', component: () => import('../views/Comments.vue') },
+  { path: '/users', name: 'users', component: () => import('../views/Users.vue') },
   { path: '/settings', name: 'settings', component: () => import('../views/Settings.vue') },
 ]
 
