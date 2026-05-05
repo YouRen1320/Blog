@@ -16,6 +16,7 @@ const routes = [
   { path: '/inbox', name: 'inbox', component: () => import('../views/AIInbox.vue') },
   { path: '/tags', name: 'tags', component: () => import('../views/Tags.vue') },
   { path: '/categories', name: 'categories', component: () => import('../views/Categories.vue') },
+  { path: '/comments', name: 'comments', component: () => import('../views/Comments.vue') },
   { path: '/settings', name: 'settings', component: () => import('../views/Settings.vue') },
 ]
 

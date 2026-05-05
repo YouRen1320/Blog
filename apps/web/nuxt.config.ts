@@ -16,6 +16,9 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       apiBase: "http://127.0.0.1:3000",
+      // sitemap / RSS / og:url 等地方需要的对外域名。
+      // 生产环境通过 NUXT_PUBLIC_SITE_URL 覆盖。
+      siteUrl: "http://localhost:3100",
     },
   },
   app: {

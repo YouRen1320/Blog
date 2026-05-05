@@ -12,6 +12,8 @@ import { TagsModule } from './modules/tags/tags.module';
 import { PublicModule } from './modules/public/public.module';
 import { AiModule } from './modules/ai/ai.module';
 import { EmbeddingModule } from './modules/embedding/embedding.module';
+import { SettingsModule } from './modules/settings/settings.module';
+import { CommentsModule } from './modules/comments/comments.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { validateEnv } from './config/env.validation';
@@ -73,6 +75,8 @@ import { validateEnv } from './config/env.validation';
     TagsModule,
     PublicModule,
     AiModule,
+    SettingsModule,
+    CommentsModule,
   ],
   providers: [
     // 守卫顺序:Throttler → Jwt → Roles

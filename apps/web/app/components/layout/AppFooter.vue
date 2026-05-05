@@ -6,22 +6,23 @@
   -->
   <footer class="app-footer mono">
     <div class="left">
-      <span>© {{ year }} YouRen</span>
+      <span>© {{ year }} {{ settings.title }}</span>
       <span>Powered by Nuxt</span>
       <span>Theme — Hermeneutics</span>
     </div>
     <div class="right">
       <a href="#" class="link">IndieWebRing →</a>
       <a href="#" class="link">开往</a>
-      <span>萌 ICP 备 20253545 号</span>
+      <span v-if="settings.icp">{{ settings.icp }}</span>
     </div>
   </footer>
 </template>
 
 <script setup lang="ts">
-// Render year client-side as well as during SSR so it stays in sync without
-// importing dayjs just for one number.
+// 年份 SSR/客户端保持一致,直接 new Date 即可(单个数字没必要引 dayjs)。
+// 站点 title / icp 走 useSiteSettings,改后台 Settings 页即可生效。
 const year = new Date().getFullYear()
+const { data: settings } = await useSiteSettings()
 </script>
 
 <style scoped>

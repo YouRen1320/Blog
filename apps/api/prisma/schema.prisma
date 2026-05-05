@@ -27,6 +27,12 @@ enum ArticleSource {
   AI
 }
 
+enum CommentStatus {
+  PENDING    // 默认,待审核
+  APPROVED   // 通过,在 web 端可见
+  REJECTED   // 拒绝,不显示;留底以便分析垃圾来源
+}
+
 model User {
   id           String    @id @default(cuid())
   username     String    @unique
@@ -61,9 +67,35 @@ model Article {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
+  comments    Comment[]
+
   @@index([status, publishedAt])
   @@index([categoryId])
   @@map("articles")
+}
+
+// 匿名评论:游客填昵称 + 邮箱(邮箱不公开),正文 1-1000 字。
+// 默认 PENDING,管理员后台审核后改 APPROVED 才在 web 显示。
+// parentId 预留嵌套(暂不开启),onDelete: Cascade 让删评论自动删回复。
+// ipAddress 用于反垃圾分析,不公开;邮箱同理。
+model Comment {
+  id          String        @id @default(cuid())
+  articleId   String
+  parentId    String?
+  authorName  String
+  authorEmail String
+  content     String
+  status      CommentStatus @default(PENDING)
+  ipAddress   String?
+  article     Article       @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  parent      Comment?      @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies     Comment[]     @relation("CommentReplies")
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([articleId, status, createdAt])
+  @@index([status])
+  @@map("comments")
 }
 
 model Category {
@@ -98,4 +130,23 @@ model ArticleTag {
   @@id([articleId, tagId])
   @@index([tagId])
   @@map("article_tags")
+}
+
+// 全局站点配置。永远只有一行(id="singleton"),
+// title / tagline / icp 影响 web 端展示;其他字段是 admin UI 占位,
+// 后续若接入运行时配置(AI model 切换、JWT 过期等)直接读这张表。
+model SiteSetting {
+  id           String   @id @default("singleton")
+  title        String   @default("YouRen")
+  tagline      String   @default("An element-soul who writes.")
+  icp          String   @default("")
+  aiModel      String   @default("mimo-v2.5-pro")
+  aiThreshold  Int      @default(85)
+  aiStreaming  Boolean  @default(true)
+  aiRagRelated Boolean  @default(true)
+  jwtHours     Int      @default(24)
+  requireMfa   Boolean  @default(false)
+  updatedAt    DateTime @updatedAt
+
+  @@map("site_settings")
 }

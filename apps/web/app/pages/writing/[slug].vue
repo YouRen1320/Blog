@@ -38,6 +38,9 @@
     <NuxtLink to="/writing" class="back mono">← 返回写作目录</NuxtLink>
   </article>
 
+  <!-- 评论区独立 section,出文章卡片范围,不让 max-width 720 限制重复嵌套 -->
+  <CommentSection v-if="article" :slug="slug" />
+
   <article v-else-if="error" class="page error-page">
     <div class="kicker mono">404</div>
     <h1 class="cn title">没有这篇文章</h1>
@@ -50,6 +53,7 @@
 import { computed } from 'vue'
 import MarkdownIt from 'markdown-it'
 import InkArt from '../../components/InkArt.vue'
+import CommentSection from '../../components/CommentSection.vue'
 import { useArticleBySlug } from '../../composables/useArticles'
 import { frenchSeason, readingTime, seedFromId, shortDate } from '../../utils/format'
 

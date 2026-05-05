@@ -112,34 +112,122 @@
         </div>
       </section>
 
+      <div v-if="settings.message" :class="['pwd-msg', settings.kind]">
+        {{ settings.message }}
+      </div>
+
       <div class="actions">
-        <button class="ghost" type="button">放弃修改</button>
-        <button class="primary" type="button">保存设置</button>
+        <button class="ghost" type="button" :disabled="settings.saving" @click="resetForm">放弃修改</button>
+        <button class="primary" type="button" :disabled="settings.saving" @click="submitSettings">
+          {{ settings.saving ? '保存中…' : '保存设置' }}
+        </button>
       </div>
     </div>
   </AdminShell>
 </template>
 
 <script setup lang="ts">
-import { reactive } from 'vue'
+import { onMounted, reactive } from 'vue'
 import AdminShell from '../components/AdminShell.vue'
 import Field from '../components/Field.vue'
 import Toggle from '../components/Toggle.vue'
 import { changePasswordRequest } from '../api/auth'
 import { backfillArticleEmbeddings } from '../api/articles'
+import { fetchSettings, updateSettings, type SiteSettings } from '../api/settings'
 
-// 单一 reactive 对象当作 form。后续接 NestJS 时换成 fetch + dirty 比对。
+// 表单字段映射后端 model:title/tagline/icp 影响 web 端展示;
+// model/threshold/streaming/ragRelated/jwtHours/requireMfa 当前是占位,
+// 持久化但运行时还没消费(留给后续接入)。
 const form = reactive({
-  title: 'Youren',
-  tagline: 'An element-soul who writes.',
-  icp: '萌 ICP 备 20253545 号',
-  model: 'GPT-4.1',
+  title: '',
+  tagline: '',
+  icp: '',
+  model: '',
   threshold: 85,
   streaming: true,
   ragRelated: true,
   jwtHours: 24,
   requireMfa: false,
 })
+
+// 把后端字段映射到表单(命名差异:aiModel→model,aiThreshold→threshold 等)
+function applyServer(s: SiteSettings) {
+  form.title = s.title
+  form.tagline = s.tagline
+  form.icp = s.icp
+  form.model = s.aiModel
+  form.threshold = s.aiThreshold
+  form.streaming = s.aiStreaming
+  form.ragRelated = s.aiRagRelated
+  form.jwtHours = s.jwtHours
+  form.requireMfa = s.requireMfa
+}
+
+const settings = reactive({
+  loaded: false,
+  saving: false,
+  message: '' as string,
+  kind: 'info' as 'info' | 'error' | 'success',
+})
+
+onMounted(async () => {
+  try {
+    const s = await fetchSettings()
+    applyServer(s)
+    settings.loaded = true
+  } catch (e) {
+    settings.kind = 'error'
+    settings.message = `加载站点设置失败:${(e as Error).message ?? '未知错误'}`
+  }
+})
+
+async function submitSettings() {
+  if (!settings.loaded) {
+    settings.kind = 'error'
+    settings.message = '配置尚未加载,请稍后再试'
+    return
+  }
+  settings.saving = true
+  settings.kind = 'info'
+  settings.message = '正在保存…'
+  try {
+    const s = await updateSettings({
+      title: form.title,
+      tagline: form.tagline,
+      icp: form.icp,
+      aiModel: form.model,
+      aiThreshold: form.threshold,
+      aiStreaming: form.streaming,
+      aiRagRelated: form.ragRelated,
+      jwtHours: form.jwtHours,
+      requireMfa: form.requireMfa,
+    })
+    applyServer(s)
+    settings.kind = 'success'
+    settings.message = '已保存。web 端的标题 / 副标 / ICP 立即生效(下次刷新可见)。'
+  } catch (e: unknown) {
+    const err = e as { response?: { status?: number; data?: { message?: string | string[] } } }
+    const msg = err?.response?.data?.message
+    settings.kind = 'error'
+    settings.message = (Array.isArray(msg) ? msg.join('; ') : msg) || '保存失败,请稍后再试'
+  } finally {
+    settings.saving = false
+  }
+}
+
+// 放弃修改 = 重新拉一遍服务端值
+async function resetForm() {
+  if (!confirm('丢弃当前修改,从服务器重新加载?')) return
+  try {
+    const s = await fetchSettings()
+    applyServer(s)
+    settings.kind = 'info'
+    settings.message = '已重置为服务器版本。'
+  } catch (e) {
+    settings.kind = 'error'
+    settings.message = `重置失败:${(e as Error).message ?? '未知错误'}`
+  }
+}
 
 // 改密码独立 state，不混进 form，避免误"放弃修改"把它清掉
 const pwd = reactive({

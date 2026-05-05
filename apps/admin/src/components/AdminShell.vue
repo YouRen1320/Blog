@@ -48,14 +48,14 @@ import { useTheme } from '../composables/useTheme'
 
 defineProps<{
   // 当前激活的导航项 key；与下方 items 对应。
-  active: 'dashboard' | 'writing' | 'drafts' | 'tags' | 'cats' | 'settings'
+  active: 'dashboard' | 'writing' | 'drafts' | 'tags' | 'cats' | 'comments' | 'settings'
 }>()
 
 const { dark, toggle } = useTheme()
 
 // 主导航数据：badge 为可选数字，用来在 AI 草稿这类"待处理"项上显示数量。
 type NavItem = {
-  key: 'dashboard' | 'writing' | 'drafts' | 'tags' | 'cats' | 'settings'
+  key: 'dashboard' | 'writing' | 'drafts' | 'tags' | 'cats' | 'comments' | 'settings'
   icon: string
   label: string
   to: string
@@ -68,6 +68,7 @@ const items: NavItem[] = [
   { key: 'drafts', icon: '✦', label: 'AI Drafts', to: '/inbox' },
   { key: 'tags', icon: '#', label: 'Tags', to: '/tags' },
   { key: 'cats', icon: '◐', label: 'Categories', to: '/categories' },
+  { key: 'comments', icon: '✉', label: 'Comments', to: '/comments' },
   { key: 'settings', icon: '⚙', label: 'Settings', to: '/settings' },
 ]
 </script>

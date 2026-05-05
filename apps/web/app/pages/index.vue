@@ -7,13 +7,13 @@
   <!-- 上半屏：自我介绍 hero -->
   <section class="profile">
     <div class="intro">
-      <h1 class="serif title">SYN. <span class="name">Youren here.</span></h1>
+      <h1 class="serif title">SYN. <span class="name">{{ settings.title }} here.</span></h1>
 
       <div class="tags">
         <span v-for="tag in tags" :key="tag" class="tag">{{ tag }}</span>
       </div>
 
-      <p class="tagline">An element-soul who writes.</p>
+      <p class="tagline">{{ settings.tagline }}</p>
 
       <div class="chips">
         <a
@@ -61,6 +61,10 @@ import { computed } from 'vue'
 import ArticleCard from '../components/ArticleCard.vue'
 import headImage from '../assets/image/head.jpg'
 import { useArticleList } from '../composables/useArticles'
+import { useSiteSettings } from '../composables/useSiteSettings'
+
+// 站点 title / tagline 来自后台,改 admin /settings 后立即生效
+const { data: settings } = await useSiteSettings()
 import { frenchSeason, seedFromId, shortDate } from '../utils/format'
 
 useSeoMeta({
