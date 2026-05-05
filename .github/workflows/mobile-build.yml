@@ -38,12 +38,24 @@ jobs:
           distribution: zulu
           java-version: '17'
 
+      # subosito/flutter-action 会装 Android SDK,但 NDK / 部分组件 license 没自动 accept
+      # build APK 时若 Flutter 要装 NDK 27.x 会失败。先用 android-actions/setup-android 拉齐 SDK,
+      # 再 accept 所有 license,后面 Flutter 再补缺什么不会被 license 卡
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          accept-android-sdk-licenses: true
+
       - name: Setup Flutter 3.35.7
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.35.7'
           channel: stable
           cache: true
+
+      # 兜底:Flutter 自己探到的 SDK 路径里再 accept 一次,double safety
+      - name: Accept any remaining licenses
+        run: yes | flutter doctor --android-licenses || true
 
       - name: Pub get
         working-directory: apps/mobile
