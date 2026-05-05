@@ -57,3 +57,28 @@ export function useArticlesByTag(slug: string, query: { page?: number; pageSize?
     key: `tag-${slug}-${query.page ?? 1}`,
   })
 }
+
+// V1.13:全文搜索
+export interface SearchHit {
+  id: string
+  title: string
+  slug: string
+  summary: string | null
+  cover: string | null
+  publishedAt: string | null
+  score: number
+}
+export interface SearchResponse {
+  data: SearchHit[]
+  q: string
+}
+
+/**
+ * 客户端式搜索:用 $fetch 而非 useFetch,因为 q 频繁变化时
+ * useFetch 的 key cache 容易失效又重新挂请求,直接 $fetch 更可控。
+ * 服务端渲染场景:在 page setup 里 await 一下即可。
+ */
+export async function searchArticles(q: string): Promise<SearchResponse> {
+  if (!q.trim()) return { data: [], q: '' }
+  return await $fetch<SearchResponse>(apiUrl('/search'), { query: { q } })
+}

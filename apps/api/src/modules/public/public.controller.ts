@@ -22,6 +22,15 @@ export class PublicController {
     return this.service.listArticles(query);
   }
 
+  /**
+   * 全文搜索:`/search?q=xxx`。无 q 或 q 太长返空。
+   * 上限 20 条,够首屏展示。
+   */
+  @Get('search')
+  search(@Query('q') q: string) {
+    return this.service.search(q ?? '');
+  }
+
   @Get('articles/:slug')
   articleDetail(@Param('slug') slug: string) {
     return this.service.findArticleBySlug(slug);

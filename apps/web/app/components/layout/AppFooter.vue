@@ -11,6 +11,7 @@
       <span>Theme — Hermeneutics</span>
     </div>
     <div class="right">
+      <NuxtLink to="/search" class="link">🔍 搜索</NuxtLink>
       <!--
         APK 直链走 GitHub release latest:
         - URL 永远指向最新 v* tag 的 app-release.apk(GitHub 自动 redirect)
