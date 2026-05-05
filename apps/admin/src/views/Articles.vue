@@ -37,10 +37,11 @@
         />
       </header>
 
-      <section class="card table" v-if="!loading && filteredRows.length > 0">
+      <section class="card table" :class="{ 'with-author': showAuthor }" v-if="!loading && filteredRows.length > 0">
         <div class="row head mono">
           <span>TITLE</span>
           <span>STATUS</span>
+          <span v-if="showAuthor">AUTHOR</span>
           <span>CATEGORY</span>
           <span>UPDATED</span>
           <span class="actions-head">ACTIONS</span>
@@ -51,6 +52,7 @@
             <span class="mono cell-slug">/{{ a.slug }}</span>
           </span>
           <span class="mono" :class="['status', `status-${a.status.toLowerCase()}`]">{{ a.status }}</span>
+          <span v-if="showAuthor" class="mono cell-author">@{{ a.author?.username ?? '—' }}</span>
           <span class="cn">{{ a.category?.name ?? '—' }}</span>
           <span class="mono">{{ formatDate(a.updatedAt) }}</span>
           <span class="actions">
@@ -83,6 +85,12 @@ import { RouterLink } from 'vue-router'
 import AdminShell from '../components/AdminShell.vue'
 import { listArticles, deleteArticle, publishArticle, unpublishArticle, type ArticleStatus, type ArticleSummary } from '../api/articles'
 import { extractErrorMessage } from '../composables/useApiError'
+import { useAuthStore } from '../stores/auth'
+
+// V1.18 多用户后:ADMIN 看全部文章时显示 AUTHOR 列(知道是谁写的);
+// USER 只能看自己的,加这一列没意义,所以根据 role 条件渲染。
+const auth = useAuthStore()
+const showAuthor = computed(() => auth.user?.role === 'ADMIN')
 
 const tabs: { value: ArticleStatus | 'ALL'; label: string }[] = [
   { value: 'ALL', label: '全部' },
@@ -215,6 +223,11 @@ function formatDate(iso: string) {
   grid-template-columns: 2fr 0.8fr 1fr 0.8fr 1.4fr;
   gap: 16px; padding: 14px 32px; align-items: center;
 }
+/* with-author:多塞一列(AUTHOR)在 STATUS 和 CATEGORY 之间 */
+.table.with-author .row {
+  grid-template-columns: 2fr 0.8fr 0.9fr 1fr 0.8fr 1.4fr;
+}
+.cell-author { font-size: 11px; color: var(--ink-2); }
 .row.head { font-size: 9px; letter-spacing: 0.18em; color: var(--ink-3); border-bottom: 1px solid var(--rule); }
 .row.body { border-top: 1px solid var(--rule); }
 .row.body:first-of-type { border-top: 0; }

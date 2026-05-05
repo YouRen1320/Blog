@@ -26,6 +26,11 @@
 | **V1.11** —— 用户管理 | ✅ 完成 (v1.11.0) | /admin/users 列表 + 升降级 + 删除,自我保护(防自删 / 防最后一个 ADMIN) | 配合 V1.6 多用户 |
 | **V1.12** —— 编辑器拖拽图片 | ✅ 完成 (v1.12.0) | content textarea paste/drop 监听,串行上传 + 光标处插 markdown | 写文章不用先去图床 |
 | **V1.13** —— 全文搜索 | ✅ 完成 (v1.13.0) | ILIKE %q% on title/summary/content + 命中权重 + /search 页 + 关键词高亮 | footer 加 🔍 入口 |
+| **V1.14** —— 文章列表前端筛选 | ✅ 完成 (v1.14.0) | admin Articles 顶部加 search input,本地按 title/slug substring 过滤 | 当前页内快速定位 |
+| **V1.15** —— 文章列表前端筛选(同步) | ✅ 完成 (v1.15.0) | (与 V1.14 合并 tag) | — |
+| **V1.16** —— 阅读进度条 + 移动端响应式补强 | ✅ 完成 (v1.16.0) | writing/[slug] 顶部 3px scaleX 进度条 + 列表/详情 < 720/480 适配 | sticky reading UX |
+| **V1.17** —— admin 多用户列表打磨 | ✅ 完成 (v1.17.0) | 评论列表批量操作 + AI 评估按钮 + Gravatar | (夜班连续 minor) |
+| **V1.18** —— admin Articles 显示作者列 | ✅ 完成 (v1.18.0) | ADMIN 看全部时多一列 AUTHOR(@username),USER 看自己不渲染 | 多用户场景区分写作者 |
 
 ---
 
