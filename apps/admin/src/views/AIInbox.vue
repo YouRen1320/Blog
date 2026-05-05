@@ -38,8 +38,31 @@
           <button class="primary" type="submit" :disabled="generating || !prompt.trim()">
             {{ generating ? '生成中…' : '✦ 生成草稿' }}
           </button>
+          <button
+            class="ghost"
+            type="button"
+            :disabled="generating || !prompt.trim()"
+            @click="onStreamGenerate"
+          >
+            {{ streaming ? '流式中…' : '✦ 流式生成' }}
+          </button>
         </form>
         <p v-if="error" class="error mono">{{ error }}</p>
+
+        <!-- 流式生成时的实时预览面板:边写边渲染,完成后自动跳编辑器 -->
+        <section v-if="streaming || streamBuffer" class="card stream-panel">
+          <div class="mono stream-kicker">
+            STREAMING ·
+            <span :class="['dot', streaming ? 'live' : 'done']" />
+            {{ streaming ? '正在生成' : (streamSavedId ? '已落库' : '已结束') }}
+          </div>
+          <pre class="stream-text">{{ streamBuffer }}<span v-if="streaming" class="cursor">▌</span></pre>
+          <div v-if="streamSavedId" class="actions">
+            <RouterLink :to="`/editor/${streamSavedId}`" class="primary">
+              进入编辑器 →
+            </RouterLink>
+          </div>
+        </section>
       </header>
 
       <div v-if="loading" class="card empty mono">LOADING…</div>
@@ -86,7 +109,7 @@ import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import AdminShell from '../components/AdminShell.vue'
 import { listArticles, type ArticleSummary } from '../api/articles'
-import { generateAiDraft } from '../api/ai'
+import { generateAiDraft, streamAiDraft } from '../api/ai'
 import { extractErrorMessage } from '../composables/useApiError'
 
 const drafts = ref<ArticleSummary[]>([])
@@ -98,6 +121,11 @@ const prompt = ref('')
 const tone = ref<'technical' | 'casual' | 'poetic' | 'narrative'>('technical')
 const length = ref<'short' | 'medium' | 'long'>('medium')
 const generating = ref(false)
+
+// 流式生成专用 state
+const streaming = ref(false)
+const streamBuffer = ref('')
+const streamSavedId = ref<string | null>(null)
 
 const active = computed(() => drafts.value.find((d) => d.id === activeId.value))
 
@@ -137,6 +165,38 @@ async function onGenerate() {
   }
 }
 
+/**
+ * 流式生成:走 SSE 端点,边收 chunk 边拼到 streamBuffer。
+ * 收到 saved 事件后自动刷新草稿列表 + 提供"进入编辑器"快捷入口。
+ */
+async function onStreamGenerate() {
+  if (streaming.value || generating.value) return
+  streaming.value = true
+  error.value = ''
+  streamBuffer.value = ''
+  streamSavedId.value = null
+  const text = prompt.value.trim()
+  try {
+    await streamAiDraft(
+      { prompt: text, tone: tone.value, length: length.value },
+      (e) => {
+        if (e.type === 'chunk') streamBuffer.value += e.text
+        else if (e.type === 'saved') streamSavedId.value = e.articleId
+        else if (e.type === 'error') error.value = e.message
+      },
+    )
+    if (streamSavedId.value) {
+      prompt.value = ''
+      await load()
+      activeId.value = streamSavedId.value
+    }
+  } catch (e) {
+    error.value = extractErrorMessage(e, '流式生成失败')
+  } finally {
+    streaming.value = false
+  }
+}
+
 onMounted(load)
 
 function formatDate(iso: string) {
@@ -165,7 +225,7 @@ function truncated(a: ArticleSummary): string {
 .generate-form {
   margin-top: 22px;
   display: grid;
-  grid-template-columns: 2fr 0.8fr 0.6fr auto;
+  grid-template-columns: 2fr 0.8fr 0.6fr auto auto;
   gap: 10px;
   align-items: center;
 }
@@ -186,6 +246,65 @@ function truncated(a: ArticleSummary): string {
 .primary:disabled { opacity: 0.5; cursor: progress; }
 
 .error { color: #c0392b; font-size: 12px; padding: 8px 0 0; }
+
+.ghost {
+  background: transparent;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 12px;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.ghost:hover { color: var(--ink); border-color: var(--ink); }
+.ghost:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* 流式预览面板:实时展示 LLM 推送的 markdown,带闪烁光标和状态点 */
+.stream-panel {
+  margin-top: 18px;
+  padding: 18px 22px;
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+}
+.stream-kicker {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--ink-3);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.dot.live  { background: var(--accent); animation: pulse 1.2s infinite; }
+.dot.done  { background: var(--ink-3); }
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.35; }
+}
+.stream-text {
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--ink);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 360px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 4px 0;
+}
+.cursor {
+  color: var(--accent);
+  animation: blink 1s steps(2) infinite;
+}
+@keyframes blink { 50% { opacity: 0; } }
 
 .empty { padding: 40px; text-align: center; color: var(--ink-3); font-size: 11px; letter-spacing: 0.16em; }
 

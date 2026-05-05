@@ -1,3 +1,4 @@
+import type { Response as ExpressResponse } from 'express';
 import {
   Injectable,
   Logger,
@@ -29,13 +30,10 @@ export class AiService {
   ) {}
 
   /**
-   * 调用 Python ai-service 生成草稿,然后写入 articles 表。
-   * 整个过程在一个事务里:LLM 返回的标签 / 分类如不存在时自动创建,
-   * 避免半生不熟的状态(文章建了但标签关联失败)。
+   * 把 ai-service 返回的结构化草稿落库。
+   * 抽离出来,流式 / 非流式两条路径都能复用。
    */
-  async createDraft(authorId: string, dto: CreateAiDraftDto) {
-    const draft = await this.callAiService(dto);
-
+  private async persistDraft(authorId: string, draft: AiServiceDraft) {
     return this.prisma.$transaction(async (tx) => {
       // 1. 处理分类(可选)
       let categoryId: string | undefined;
@@ -85,6 +83,114 @@ export class AiService {
         },
       });
     });
+  }
+
+  /**
+   * 非流式入口:同步调 ai-service,拿到完整草稿后落库。
+   */
+  async createDraft(authorId: string, dto: CreateAiDraftDto) {
+    const draft = await this.callAiService(dto);
+    return this.persistDraft(authorId, draft);
+  }
+
+  /**
+   * 流式入口:把 ai-service SSE 边转发给前端,边在内存累积 draft event,
+   * stream 结束后落库,最后再发一个 `event: saved` 带 articleId 的事件。
+   */
+  async streamDraft(authorId: string, dto: CreateAiDraftDto, res: ExpressResponse) {
+    const baseUrl =
+      this.config.get<string>('AI_SERVICE_BASE_URL') ?? 'http://127.0.0.1:8001';
+    this.logger.log(
+      `streaming ai-service ${baseUrl}/generate/article/stream (prompt=${dto.prompt.slice(0, 40)}…)`,
+    );
+
+    // SSE 通用响应头
+    res.status(200);
+    res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders?.();
+
+    const sendSse = (event: string, data: unknown) => {
+      const payload = typeof data === 'string' ? data : JSON.stringify(data);
+      res.write(`event: ${event}\ndata: ${payload}\n\n`);
+    };
+
+    try {
+      const upstreamRes = await fetch(`${baseUrl}/generate/article/stream`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: dto.prompt,
+          tone: dto.tone ?? 'technical',
+          length: dto.length ?? 'medium',
+        }),
+      });
+      if (!upstreamRes.ok || !upstreamRes.body) {
+        sendSse('error', {
+          message: `ai-service /stream returned ${upstreamRes.status}`,
+        });
+        res.end();
+        return;
+      }
+
+      // 边读上游 SSE,边按 \n\n 切事件,识别 draft 事件留作落库
+      const reader = upstreamRes.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let buffer = '';
+      let parsedDraft: AiServiceDraft | undefined;
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        const text = decoder.decode(value, { stream: true });
+        buffer += text;
+        // 直接把原始字节透传给前端,不做 reformat
+        res.write(text);
+
+        // 同步在 buffer 里找完整事件(\n\n 分隔)
+        let idx: number;
+        while ((idx = buffer.indexOf('\n\n')) !== -1) {
+          const eventBlock = buffer.slice(0, idx);
+          buffer = buffer.slice(idx + 2);
+          // 识别 event: draft + data: {...} 格式
+          const lines = eventBlock.split('\n');
+          let eventName = '';
+          let eventData = '';
+          for (const line of lines) {
+            if (line.startsWith('event:')) eventName = line.slice(6).trim();
+            else if (line.startsWith('data:'))
+              eventData += line.slice(5).trim();
+          }
+          if (eventName === 'draft' && eventData) {
+            try {
+              parsedDraft = JSON.parse(eventData) as AiServiceDraft;
+            } catch (e) {
+              this.logger.warn(
+                `failed to parse draft event: ${(e as Error).message}`,
+              );
+            }
+          }
+        }
+      }
+
+      if (parsedDraft) {
+        try {
+          const article = await this.persistDraft(authorId, parsedDraft);
+          sendSse('saved', { articleId: article.id });
+        } catch (e) {
+          this.logger.error('persist draft failed', e as Error);
+          sendSse('error', { message: `落库失败: ${(e as Error).message}` });
+        }
+      }
+    } catch (err) {
+      const e = err as Error;
+      this.logger.error('streamDraft failed', e);
+      sendSse('error', { message: `ai-service 流式失败: ${e.message}` });
+    } finally {
+      res.end();
+    }
   }
 
   /**

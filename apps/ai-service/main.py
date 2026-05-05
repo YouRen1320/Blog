@@ -9,6 +9,7 @@ from fastapi import FastAPI
 
 from app.api.embed import router as embed_router
 from app.api.generate import router as generate_router
+from app.api.stream import router as stream_router
 from app.core.config import get_settings
 
 
@@ -42,6 +43,7 @@ app = FastAPI(
 )
 
 app.include_router(generate_router, prefix="/generate", tags=["generate"])
+app.include_router(stream_router, prefix="/generate", tags=["generate"])
 app.include_router(embed_router, prefix="/embed", tags=["embed"])
 
 
