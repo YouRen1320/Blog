@@ -1,5 +1,6 @@
 import type { Response as ExpressResponse } from 'express';
 import {
+  BadRequestException,
   Injectable,
   Logger,
   ServiceUnavailableException,
@@ -191,6 +192,35 @@ export class AiService {
     } finally {
       res.end();
     }
+  }
+
+  /**
+   * 语音 → 文字。透传给 ai-service /transcribe(multipart/form-data)。
+   * Node 18+ FormData / Blob 都是 globals,直接用。
+   */
+  async transcribe(file: Express.Multer.File): Promise<{ text: string }> {
+    if (!file) throw new BadRequestException('未收到文件,字段名应为 file');
+    const baseUrl =
+      this.config.get<string>('AI_SERVICE_BASE_URL') ?? 'http://127.0.0.1:8001';
+    const form = new FormData();
+    // Node 22 的 Blob 接受 Uint8Array,Buffer 是 Uint8Array 子类型但 lib.dom 类型不兼容
+    form.append(
+      'file',
+      new Blob([new Uint8Array(file.buffer)], { type: file.mimetype }),
+      file.originalname || 'audio.m4a',
+    );
+    const res = await fetch(`${baseUrl}/transcribe/`, {
+      method: 'POST',
+      body: form,
+    });
+    if (!res.ok) {
+      const body = await res.text();
+      this.logger.warn(`/transcribe upstream ${res.status}: ${body.slice(0, 200)}`);
+      throw new ServiceUnavailableException(
+        res.status === 503 ? '语音转写未配置(WHISPER_API_KEY)' : 'AI 转写失败',
+      );
+    }
+    return (await res.json()) as { text: string };
   }
 
   /**

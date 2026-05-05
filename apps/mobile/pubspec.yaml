@@ -36,6 +36,11 @@ dependencies:
   # 加载 .env(运行时):API 地址、AI key 之类配置
   flutter_dotenv: ^5.2.1
 
+  # 录音 + 麦克风 permission(V1.5 加,语音输入入口转真接通)
+  record: ^5.2.1
+  permission_handler: ^11.3.1
+  path_provider: ^2.1.5
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

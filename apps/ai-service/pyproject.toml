@@ -7,6 +7,8 @@ requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.32.0",
+    # FastAPI multipart/form-data 支持(/transcribe 接 audio file 用)
+    "python-multipart>=0.0.18",
     # OpenAI SDK 留作 fallback 直连(LiteLLM 也用它做 OpenAI 兼容协议的底层)
     "openai>=1.50.0",
     # 多模型路由:统一接口跑 OpenAI / Anthropic / Gemini / Qwen / MiMo,

@@ -1,13 +1,16 @@
-// /create —— AI 创作入口(V4-06 真接通):
-// 提交 prompt → POST /admin/ai/drafts → 拿到生成的 ArticleDetail → 跳转草稿列表。
+// /create —— AI 创作入口。
 //
-// V3 阶段是"按钮 toast 占位",现在真打 NestJS,NestJS 转给 ai-service。
-// USE_MOCK_LLM=true 时 ai-service 返回固定假数据,前端流程依然完整。
-//
-// 语音输入按钮仍然占位(speech_to_text 留给 Final 阶段)。
+// V1.5 起:语音输入接通 record + permission_handler →
+// POST /admin/ai/transcribe(后端走 Whisper)→ 拿到的文字 append 进 prompt 框。
+// 流程:点击 mic → 请求权限 → 录 m4a 临时文件 → 再点 mic 停止 + 上传 → 文字落进框。
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:record/record.dart';
 import '../providers/ai_provider.dart';
 import '../providers/articles_provider.dart';
 import '../theme/tokens.dart';
@@ -38,6 +41,75 @@ class _CreateRequestPageState extends ConsumerState<CreateRequestPage> {
   String _length = 'medium';
   bool _busy = false;
   String? _error;
+
+  // 录音 state
+  final _recorder = AudioRecorder();
+  bool _recording = false;
+  bool _transcribing = false;
+
+  @override
+  void dispose() {
+    _recorder.dispose();
+    _prompt.dispose();
+    super.dispose();
+  }
+
+  /// mic 按钮:第一次按 → 请求权限 + 开始录;第二次按 → 停止 + 上传 + 拿文字
+  Future<void> _toggleRecord() async {
+    if (_busy || _transcribing) return;
+    if (_recording) {
+      await _stopAndTranscribe();
+    } else {
+      await _startRecord();
+    }
+  }
+
+  Future<void> _startRecord() async {
+    final granted = await Permission.microphone.request();
+    if (!granted.isGranted) {
+      setState(() => _error = '麦克风权限被拒,无法语音输入');
+      return;
+    }
+    try {
+      final dir = await getTemporaryDirectory();
+      final path = '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
+      await _recorder.start(
+        const RecordConfig(encoder: AudioEncoder.aacLc, sampleRate: 16000),
+        path: path,
+      );
+      setState(() {
+        _recording = true;
+        _error = null;
+      });
+    } catch (e) {
+      setState(() => _error = '录音启动失败:$e');
+    }
+  }
+
+  Future<void> _stopAndTranscribe() async {
+    final path = await _recorder.stop();
+    setState(() {
+      _recording = false;
+      _transcribing = path != null;
+      _error = null;
+    });
+    if (path == null) return;
+    try {
+      final text = await ref.read(aiServiceProvider).transcribe(path);
+      // append 到 prompt 框,不覆盖已有文字
+      final cur = _prompt.text;
+      _prompt.text = cur.isEmpty ? text : '$cur $text';
+      _prompt.selection = TextSelection.collapsed(offset: _prompt.text.length);
+    } catch (e) {
+      setState(() => _error = '语音转写失败:$e');
+    } finally {
+      // 删临时文件
+      try {
+        await File(path).delete();
+      } catch (_) {}
+      if (mounted) setState(() => _transcribing = false);
+    }
+  }
 
   Future<void> _submit() async {
     if (_prompt.text.trim().isEmpty) {
@@ -110,12 +182,31 @@ class _CreateRequestPageState extends ConsumerState<CreateRequestPage> {
               ),
               const SizedBox(width: 10),
               GestureDetector(
-                onTap: _busy ? null : () => _info(context, '语音输入留给 Final 阶段接 speech_to_text'),
+                onTap: (_busy || _transcribing) ? null : _toggleRecord,
                 child: Container(
                   width: 56,
                   height: 56,
-                  decoration: BoxDecoration(color: context.card, borderRadius: BorderRadius.circular(14)),
-                  child: Icon(Icons.mic_none_outlined, color: context.ink3),
+                  decoration: BoxDecoration(
+                    // 录音中:红色脉冲色;转写中:accent;空闲:卡片色
+                    color: _recording
+                        ? const Color(0xFFB95C50)
+                        : (_transcribing ? context.accent : context.card),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: _transcribing
+                      ? const Center(
+                          child: SizedBox(
+                            width: 18, height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation(Colors.white),
+                            ),
+                          ),
+                        )
+                      : Icon(
+                          _recording ? Icons.stop_circle_outlined : Icons.mic_none_outlined,
+                          color: _recording ? Colors.white : context.ink3,
+                        ),
                 ),
               ),
             ],
@@ -171,10 +262,6 @@ class _CreateRequestPageState extends ConsumerState<CreateRequestPage> {
       ),
     );
   }
-
-  void _info(BuildContext c, String msg) => ScaffoldMessenger.of(c).showSnackBar(
-        SnackBar(content: Text(msg, style: AppType.cn(fontSize: 13)), duration: const Duration(seconds: 3)),
-      );
 
   Widget _label(BuildContext c, String text) =>
       Text(text, style: AppType.mono(fontSize: 9, color: c.ink3, letterSpacing: 1.8));

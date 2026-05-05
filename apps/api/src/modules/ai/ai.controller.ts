@@ -1,4 +1,12 @@
-import { Body, Controller, Post, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Post,
+  Res,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response as ExpressResponse } from 'express';
 import { Throttle } from '@nestjs/throttler';
 import { AiService } from './ai.service';
@@ -52,5 +60,20 @@ export class AiController {
   @Post('inline')
   async inline(@Body() body: unknown, @Res() res: ExpressResponse) {
     await this.ai.streamInline(body, res);
+  }
+
+  /**
+   * 语音转文字。multipart/form-data 字段 file(audio/m4a / wav / mp3 / webm)。
+   * 上限 10MB,转写慢时占资源,所以走 ai 档限流(10/min)。
+   */
+  @Throttle({ ai: { limit: 10, ttl: 60_000 } })
+  @Post('transcribe')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: 10 * 1024 * 1024 },
+    }),
+  )
+  async transcribe(@UploadedFile() file: Express.Multer.File) {
+    return this.ai.transcribe(file);
   }
 }

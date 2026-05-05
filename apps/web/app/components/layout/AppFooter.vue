@@ -11,6 +11,18 @@
       <span>Theme — Hermeneutics</span>
     </div>
     <div class="right">
+      <!--
+        APK 直链走 GitHub release latest:
+        - URL 永远指向最新 v* tag 的 app-release.apk(GitHub 自动 redirect)
+        - 发新版 tag 时 web 端不用改代码
+        rel="external" 让爬虫不带权重过去
+      -->
+      <a
+        href="https://github.com/YouRen1320/Blog/releases/latest/download/app-release.apk"
+        class="link"
+        rel="external"
+        download
+      >📱 Android APK</a>
       <a href="#" class="link">IndieWebRing →</a>
       <a href="#" class="link">开往</a>
       <span v-if="settings.icp">{{ settings.icp }}</span>

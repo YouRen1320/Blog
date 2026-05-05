@@ -54,6 +54,30 @@
   <div class="more-row">
     <NuxtLink to="/writing" class="more-btn mono">→ 阅读更多</NuxtLink>
   </div>
+
+  <!--
+    Android APK 下载卡:
+    href 走 GitHub release latest,自动指最新 v* tag 的 app-release.apk
+    iOS 这里就明说"开发中",防止用户期望落空(等 Apple Developer 开了再补)
+  -->
+  <section class="apk-card">
+    <div class="apk-meta">
+      <div class="mono kicker">MOBILE · ANDROID</div>
+      <h3 class="cn apk-title">把博客装进口袋</h3>
+      <p class="cn apk-desc">
+        Flutter 写的移动端,文章浏览 + 草稿提交 + 语音输入。直接装到 Android,iOS 待开发者签名后再放出。
+      </p>
+    </div>
+    <div class="apk-actions">
+      <a
+        class="apk-btn"
+        href="https://github.com/YouRen1320/Blog/releases/latest/download/app-release.apk"
+        rel="external"
+        download
+      >📱 下载 Android APK</a>
+      <span class="mono apk-note">latest release · 约 49 MB</span>
+    </div>
+  </section>
 </template>
 
 <script setup lang="ts">
@@ -269,4 +293,66 @@ const postList = computed(() => {
   transition: color 0.15s ease;
 }
 .more-btn:hover { color: var(--ink); }
+
+/* Android APK 下载卡:hero 之外、文章列表之后,左右两栏 */
+.apk-card {
+  max-width: 1100px;
+  margin: 60px auto 0;
+  padding: 28px 36px;
+  background: var(--card);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 24px;
+}
+@media (max-width: 720px) {
+  .apk-card { grid-template-columns: 1fr; padding: 22px 24px; }
+}
+
+.apk-meta .kicker {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--ink-3);
+  margin-bottom: 8px;
+}
+.apk-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0 0 6px;
+  color: var(--ink);
+}
+.apk-desc {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--ink-2);
+  margin: 0;
+}
+
+.apk-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+.apk-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--ink);
+  color: var(--bg);
+  padding: 12px 22px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: opacity 0.15s ease;
+}
+.apk-btn:hover { opacity: 0.92; }
+.apk-note {
+  font-size: 10px;
+  color: var(--ink-3);
+  letter-spacing: 0.12em;
+}
 </style>

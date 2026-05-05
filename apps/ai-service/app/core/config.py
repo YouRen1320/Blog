@@ -68,6 +68,15 @@ class Settings(BaseSettings):
         description="是否启用 BGE-reranker(false 时省 ~1GB 内存)",
     )
 
+    # Whisper / 语音转文字(独立于 LLM_PROVIDER —— MiMo / Anthropic 等没 transcription)
+    # WHISPER_API_KEY 为空时 POST /transcribe 返 503
+    WHISPER_API_KEY: str = Field("", description="Whisper API key(空时 /transcribe 不可用)")
+    WHISPER_MODEL: str = Field("whisper-1", description="转写模型(OpenAI 默认 whisper-1)")
+    WHISPER_API_BASE: str = Field(
+        default="https://api.openai.com/v1",
+        description="Whisper 端点;dashscope paraformer 走 https://dashscope.aliyuncs.com/compatible-mode/v1",
+    )
+
     # LangFuse 追踪(可选,LiteLLM 自动接入)
     # 三个 env 都设了才启用;否则 router 不挂 callback,无副作用
     LANGFUSE_PUBLIC_KEY: str = Field("", description="LangFuse public key (pk_lf_...)")

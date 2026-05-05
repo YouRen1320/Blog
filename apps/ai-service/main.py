@@ -11,6 +11,7 @@ from app.api.embed import router as embed_router
 from app.api.generate import router as generate_router
 from app.api.inline import router as inline_router
 from app.api.stream import router as stream_router
+from app.api.transcribe import router as transcribe_router
 from app.core.config import get_settings
 
 
@@ -54,6 +55,7 @@ app.include_router(generate_router, prefix="/generate", tags=["generate"])
 app.include_router(stream_router, prefix="/generate", tags=["generate"])
 app.include_router(inline_router, prefix="/generate", tags=["generate"])
 app.include_router(embed_router, prefix="/embed", tags=["embed"])
+app.include_router(transcribe_router, prefix="/transcribe", tags=["transcribe"])
 
 
 @app.get("/healthz")
