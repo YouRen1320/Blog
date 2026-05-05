@@ -65,8 +65,14 @@
           v-model="post.content"
           class="content-area"
           :readonly="ai.running"
-          placeholder="正文(支持 Markdown,前台用 markdown-it 渲染)"
+          placeholder="正文(支持 Markdown · 拖入或粘贴图片自动上传)"
+          @paste="onContentPaste"
+          @drop.prevent="onContentDrop"
+          @dragover.prevent
         />
+        <p v-if="contentImageUploading" class="content-upload-hint mono">
+          正在上传图片…
+        </p>
       </section>
 
       <aside class="card aside">
@@ -143,6 +149,63 @@ const post = reactive({
 // 封面图上传状态
 const uploadingCover = ref(false)
 const coverError = ref('')
+
+/**
+ * 正文拖拽 / 粘贴图片:
+ * 1. 拦截 paste / drop 事件,从 clipboard / dataTransfer 拿 image 文件
+ * 2. 上传 → /uploads/<hash>.ext
+ * 3. 在光标位置插入 markdown `![alt](url)`,光标跟到 url 之后
+ * 多张图片时按顺序处理(await 串行,防止同时多个上传请求挤爆后端)
+ */
+const contentImageUploading = ref(false)
+
+async function uploadAndInsertImage(file: File) {
+  contentImageUploading.value = true
+  try {
+    const res = await uploadImage(file)
+    const ta = contentRef.value
+    const insertAt = ta?.selectionStart ?? post.content.length
+    const before = post.content.slice(0, insertAt)
+    const after = post.content.slice(insertAt)
+    const md = `\n![${file.name.replace(/\.[^.]+$/, '')}](${res.url})\n`
+    post.content = before + md + after
+    // 光标移到插入文本之后
+    setTimeout(() => {
+      if (ta) {
+        const pos = insertAt + md.length
+        ta.focus()
+        ta.setSelectionRange(pos, pos)
+      }
+    }, 0)
+  } catch (e) {
+    error.value = `图片上传失败:${(e as Error).message}`
+  } finally {
+    contentImageUploading.value = false
+  }
+}
+
+async function onContentPaste(e: ClipboardEvent) {
+  const items = e.clipboardData?.items
+  if (!items) return
+  const images: File[] = []
+  for (const it of items) {
+    if (it.kind === 'file' && it.type.startsWith('image/')) {
+      const f = it.getAsFile()
+      if (f) images.push(f)
+    }
+  }
+  if (images.length === 0) return
+  e.preventDefault()
+  for (const f of images) await uploadAndInsertImage(f)
+}
+
+async function onContentDrop(e: DragEvent) {
+  const files = e.dataTransfer?.files
+  if (!files || files.length === 0) return
+  const images = Array.from(files).filter((f) => f.type.startsWith('image/'))
+  if (images.length === 0) return
+  for (const f of images) await uploadAndInsertImage(f)
+}
 
 /**
  * 后端返回的 cover URL 是相对路径(/uploads/<hash>.ext)。
@@ -465,6 +528,13 @@ function actionLabel(a: InlineAction): string {
   font-size: 12px; cursor: pointer; color: var(--ink-2);
 }
 .tag-pill input { margin: 0; }
+
+.content-upload-hint {
+  font-size: 11px;
+  color: var(--accent);
+  margin: 4px 0 0;
+  letter-spacing: 0.1em;
+}
 
 .content-area {
   flex: 1; min-height: 300px; padding: 14px;
