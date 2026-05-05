@@ -136,11 +136,29 @@ watch(() => props.id, async (id) => {
   if (id) await loadArticle(id)
 })
 
-async function onSave() {
+/**
+ * 保存。返回保存后的 article id(新建后是新 id,更新是 props.id)。
+ * 失败返回 undefined,error.value 已更新。
+ *
+ * 关键:onPublish 在新建态会先调 onSave,**它必须返回 id 让 publish 能继续**,
+ * 否则就是"先保存了,但忘记发布"这种半截状态(v1.3 之前的 bug)。
+ */
+async function onSave(): Promise<string | undefined> {
+  // 前端先做基础校验,避免给后端发出注定 400 的请求
+  const title = post.title.trim()
+  if (!title) {
+    error.value = '标题不能为空'
+    return undefined
+  }
+  if (!post.content.trim()) {
+    error.value = '正文不能为空'
+    return undefined
+  }
+
   saving.value = true; error.value = ''
   try {
     const payload = {
-      title: post.title.trim(),
+      title,
       slug: post.slug.trim() || undefined,
       summary: post.summary.trim() || undefined,
       content: post.content,
@@ -150,28 +168,33 @@ async function onSave() {
     if (props.id) {
       const a = await updateArticle(props.id, payload)
       post.updatedAt = a.updatedAt
+      lastSavedAt.value = Date.now()
+      return props.id
     } else {
       const a = await createArticle(payload)
-      // 跳转到编辑模式
+      // 跳转到编辑模式;router.replace 是异步的,但 a.id 是确定的,直接返回它
       router.replace(`/editor/${a.id}`)
+      lastSavedAt.value = Date.now()
+      return a.id
     }
-    lastSavedAt.value = Date.now()
   } catch (e) {
     error.value = extractErrorMessage(e)
+    return undefined
   } finally {
     saving.value = false
   }
 }
 
 async function onPublish() {
-  if (!props.id) {
-    // 没保存过先保存,拿到 id 再发布
-    await onSave()
-    return
+  // 新建态:先 save 拿 id,再 publish。任何一步失败都不继续
+  let id = props.id
+  if (!id) {
+    id = await onSave()
+    if (!id) return
   }
   saving.value = true; error.value = ''
   try {
-    const a = await publishArticle(props.id)
+    const a = await publishArticle(id)
     post.status = a.status
     post.publishedAt = a.publishedAt
     lastSavedAt.value = Date.now()
