@@ -1,11 +1,22 @@
 // 后台 axios 实例:
-// - baseURL 来自 vite 的 VITE_API_BASE_URL
-// - 请求拦截器:从 auth store 注入 Authorization 头
-// - 响应拦截器:401 时清登录态并跳 /login(token 过期 / 被踢)
+// - baseURL 优先用 VITE_API_BASE_URL(build 时注入)
+// - 没设的话,运行时根据当前域名兜底:
+//     admin.iyouren.top → https://www.iyouren.top/api
+//     其它(本地 dev) → http://localhost:3000
+//   这样不需要给生产 build 单独传 build arg,生产/开发同一份镜像
 import axios, { type AxiosInstance } from 'axios'
 
+function resolveBaseUrl(): string {
+  const envUrl = import.meta.env.VITE_API_BASE_URL
+  if (envUrl) return envUrl
+  if (typeof window !== 'undefined' && window.location.hostname.endsWith('iyouren.top')) {
+    return 'https://www.iyouren.top/api'
+  }
+  return 'http://localhost:3000'
+}
+
 export const apiClient: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000',
+  baseURL: resolveBaseUrl(),
   timeout: 15000,
 })
 
