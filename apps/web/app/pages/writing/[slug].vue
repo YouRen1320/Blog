@@ -1,12 +1,18 @@
 <template>
   <!--
-    /writing/[slug] —— 文章详情(V1-08 接 NestJS):
-    · 顶部 kicker:法国共和历月份 + 短分隔线
-    · 标题 + 摘要 + meta(阅读时长 / 字数 / 日期 / 分类 / 标签)
-    · hero ink-art 封面(seed 从 id 派生)
-    · 正文用 markdown-it 渲染
+    /writing/[slug] —— 文章详情(V1-08 接 NestJS,V1.16 加阅读进度条):
+    · 顶部 4px 固定进度条,随滚动 scaleX
+    · kicker / 标题 / meta / hero / 正文 / 评论
     · 404 时跳到自定义 not-found
   -->
+
+  <!-- 顶部阅读进度条:fixed top:0,scaleX 来自滚动百分比 -->
+  <div
+    v-if="article"
+    class="reading-progress"
+    :style="{ transform: `scaleX(${readingProgress})` }"
+  />
+
   <article v-if="article" class="page">
     <div class="kicker mono">{{ frenchSeason(article.publishedAt) }}</div>
     <div class="kicker-rule" />
@@ -50,7 +56,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import MarkdownIt from 'markdown-it'
 import InkArt from '../../components/InkArt.vue'
 import CommentSection from '../../components/CommentSection.vue'
@@ -78,9 +84,45 @@ if (error.value) {
   // 让 Nuxt 给 404 状态码,有利于 SEO
   throw createError({ statusCode: 404, statusMessage: 'Article not found' })
 }
+
+// V1.16 阅读进度条:0 → 1 之间,scaleX(progress)
+const readingProgress = ref(0)
+
+function updateProgress() {
+  if (typeof window === 'undefined') return
+  const scrollTop = window.scrollY
+  const total = document.documentElement.scrollHeight - window.innerHeight
+  readingProgress.value = total > 0 ? Math.min(1, Math.max(0, scrollTop / total)) : 0
+}
+
+onMounted(() => {
+  if (typeof window === 'undefined') return
+  window.addEventListener('scroll', updateProgress, { passive: true })
+  window.addEventListener('resize', updateProgress)
+  updateProgress()
+})
+onUnmounted(() => {
+  if (typeof window === 'undefined') return
+  window.removeEventListener('scroll', updateProgress)
+  window.removeEventListener('resize', updateProgress)
+})
 </script>
 
 <style scoped>
+/* 阅读进度条:fixed 顶部 + 强调色 + 左对齐缩放 */
+.reading-progress {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%;
+  height: 3px;
+  background: var(--accent);
+  transform-origin: left center;
+  transform: scaleX(0);
+  z-index: 100;
+  transition: transform 80ms linear;
+  pointer-events: none;
+}
+
 .page {
   max-width: 720px;
   margin: 0 auto;
