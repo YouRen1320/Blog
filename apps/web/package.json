@@ -16,8 +16,8 @@
     "vue-router": "^5.0.4"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.2.2",
+    "@tailwindcss/vite": "^4.2.4",
     "@types/markdown-it": "^14.1.2",
-    "tailwindcss": "^4.2.2"
+    "tailwindcss": "^4.2.4"
   }
 }
