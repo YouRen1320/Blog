@@ -77,6 +77,12 @@ services:
       USE_MOCK_LLM: ${USE_MOCK_LLM:-false}
       # AI2 起 ai-service 自己直读 articles 表做 RAG 检索
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      # LangSmith tracing(可选,不设 LANGCHAIN_TRACING_V2 等于关闭)
+      # 没设时 LangGraph 完全不调 smith.langchain.com,无副作用
+      LANGCHAIN_TRACING_V2: ${LANGCHAIN_TRACING_V2:-false}
+      LANGCHAIN_API_KEY: ${LANGCHAIN_API_KEY:-}
+      LANGCHAIN_PROJECT: ${LANGCHAIN_PROJECT:-blog-ai}
+      LANGCHAIN_ENDPOINT: ${LANGCHAIN_ENDPOINT:-https://api.smith.langchain.com}
     healthcheck:
       # python:3.12-slim 没有 wget,改用 python 自带 urllib
       test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8001/healthz', timeout=3).status==200 else 1)"]

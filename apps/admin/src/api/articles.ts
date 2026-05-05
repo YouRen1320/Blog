@@ -75,3 +75,22 @@ export async function unpublishArticle(id: string) {
   const { data } = await apiClient.patch<ArticleDetail>(`/admin/articles/${id}/unpublish`)
   return data
 }
+
+export interface BackfillResult {
+  total: number
+  processed: number
+  failed: number
+}
+
+/**
+ * 批量回填 embedding：扫所有 PUBLISHED 且 embedding=NULL 的文章，串行调 BGE。
+ * 每篇 ~2-3s，N 篇 N*3s，timeout 给 5 分钟，确保大批文章不被前端中断。
+ */
+export async function backfillArticleEmbeddings() {
+  const { data } = await apiClient.post<BackfillResult>(
+    '/admin/articles/backfill-embeddings',
+    undefined,
+    { timeout: 300_000 },
+  )
+  return data
+}

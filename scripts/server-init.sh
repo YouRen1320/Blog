@@ -67,6 +67,12 @@ XIAOMI_MIMO_API_KEY=__YOUR_KEY__
 XIAOMI_MIMO_BASE_URL=https://api.xiaomimimo.com/v1
 XIAOMI_MIMO_MODEL=mimo-v2.5-pro
 USE_MOCK_LLM=false
+
+# LangSmith tracing(可选,留空=不开)
+LANGCHAIN_TRACING_V2=false
+LANGCHAIN_API_KEY=
+LANGCHAIN_PROJECT=blog-ai
+LANGCHAIN_ENDPOINT=https://api.smith.langchain.com
 EOF
   chmod 600 "$DEPLOY_DIR/.env.production"
   log "请编辑 $DEPLOY_DIR/.env.production 填入真实 secret 后再跑 docker compose"

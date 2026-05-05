@@ -46,6 +46,35 @@
         <Toggle v-model="form.ragRelated" label="文章页显示 RAG 相关推荐" />
       </section>
 
+      <!--
+        AI · 维护：把发布的老文章回填 RAG 向量，给新草稿提供更好的上下文。
+        - 一次只处理 status=PUBLISHED 且 embedding=NULL 的文章，重复点不会重做
+        - 后端串行跑 BGE，每篇 ~2-3s，请求 timeout 给 5 分钟
+        - 完成后展示 total / processed / failed 三项汇总
+      -->
+      <section class="card group">
+        <div class="mono group-kicker">AI · 维护</div>
+        <p class="ai-desc cn">
+          为已发布但还没向量化的旧文章批量补算 embedding，
+          补完后这些文章会进入 RAG 检索范围，新草稿生成时能引用到它们。
+        </p>
+
+        <div v-if="backfill.message" :class="['pwd-msg', backfill.kind]">
+          {{ backfill.message }}
+        </div>
+
+        <div class="actions">
+          <button
+            class="primary"
+            type="button"
+            :disabled="backfill.running"
+            @click="runBackfill"
+          >
+            {{ backfill.running ? '正在回填，请稍候…' : '批量回填 embedding' }}
+          </button>
+        </div>
+      </section>
+
       <section class="card group">
         <div class="mono group-kicker">AUTH · 安全</div>
 
@@ -53,6 +82,34 @@
           <input v-model.number="form.jwtHours" class="input mono" type="number" min="1" max="720" />
         </Field>
         <Toggle v-model="form.requireMfa" label="登录强制 2FA" />
+      </section>
+
+      <!--
+        改密码区块：独立提交，不跟"保存设置"按钮绑定。
+        - 校验：新密码 ≥ 8 位，且不能和确认密码不一致
+        - 后端 strict 限流 5/min，UI 层不再单独节流
+        - 成功后清空表单 + 提示"建议重新登录"，但不强制踢人(token 仍有效)
+      -->
+      <section class="card group">
+        <div class="mono group-kicker">AUTH · 改密码</div>
+
+        <Field label="当前密码">
+          <input v-model="pwd.current" class="input" type="password" autocomplete="current-password" />
+        </Field>
+        <Field label="新密码" hint="至少 8 位">
+          <input v-model="pwd.next" class="input" type="password" autocomplete="new-password" />
+        </Field>
+        <Field label="确认新密码">
+          <input v-model="pwd.confirm" class="input" type="password" autocomplete="new-password" />
+        </Field>
+
+        <div v-if="pwd.message" :class="['pwd-msg', pwd.kind]">{{ pwd.message }}</div>
+
+        <div class="actions">
+          <button class="primary" type="button" :disabled="pwd.submitting" @click="submitPasswordChange">
+            {{ pwd.submitting ? '提交中...' : '修改密码' }}
+          </button>
+        </div>
       </section>
 
       <div class="actions">
@@ -68,6 +125,8 @@ import { reactive } from 'vue'
 import AdminShell from '../components/AdminShell.vue'
 import Field from '../components/Field.vue'
 import Toggle from '../components/Toggle.vue'
+import { changePasswordRequest } from '../api/auth'
+import { backfillArticleEmbeddings } from '../api/articles'
 
 // 单一 reactive 对象当作 form。后续接 NestJS 时换成 fetch + dirty 比对。
 const form = reactive({
@@ -81,6 +140,98 @@ const form = reactive({
   jwtHours: 24,
   requireMfa: false,
 })
+
+// 改密码独立 state，不混进 form，避免误"放弃修改"把它清掉
+const pwd = reactive({
+  current: '',
+  next: '',
+  confirm: '',
+  submitting: false,
+  message: '' as string,
+  kind: 'info' as 'info' | 'error' | 'success',
+})
+
+function setMsg(kind: 'info' | 'error' | 'success', message: string) {
+  pwd.kind = kind
+  pwd.message = message
+}
+
+// 批量回填 state：跟改密码一样独立，避免被"放弃修改"清掉
+const backfill = reactive({
+  running: false,
+  message: '' as string,
+  kind: 'info' as 'info' | 'error' | 'success',
+})
+
+async function runBackfill() {
+  if (backfill.running) return
+  backfill.running = true
+  backfill.kind = 'info'
+  backfill.message = '正在调用后端串行回填，请耐心等待…'
+  try {
+    const res = await backfillArticleEmbeddings()
+    if (res.total === 0) {
+      backfill.kind = 'success'
+      backfill.message = '已经没有需要回填的文章（所有 PUBLISHED 都已索引）。'
+    } else if (res.failed === 0) {
+      backfill.kind = 'success'
+      backfill.message = `回填完成：共 ${res.total} 篇，全部成功。`
+    } else {
+      backfill.kind = 'error'
+      backfill.message = `回填完成：共 ${res.total} 篇，成功 ${res.processed}，失败 ${res.failed}。可重试一次。`
+    }
+  } catch (e: unknown) {
+    const err = e as { response?: { status?: number; data?: { message?: string | string[] } } }
+    const status = err?.response?.status
+    backfill.kind = 'error'
+    backfill.message = status
+      ? `回填失败（HTTP ${status}），请稍后再试。`
+      : '回填失败，请检查网络或后端日志。'
+  } finally {
+    backfill.running = false
+  }
+}
+
+async function submitPasswordChange() {
+  // 前端基础校验，后端会再校验一次
+  if (!pwd.current || !pwd.next || !pwd.confirm) {
+    setMsg('error', '请填写完整')
+    return
+  }
+  if (pwd.next.length < 8) {
+    setMsg('error', '新密码至少 8 位')
+    return
+  }
+  if (pwd.next !== pwd.confirm) {
+    setMsg('error', '两次输入的新密码不一致')
+    return
+  }
+  if (pwd.next === pwd.current) {
+    setMsg('error', '新密码不能与当前密码相同')
+    return
+  }
+
+  pwd.submitting = true
+  setMsg('info', '正在提交...')
+  try {
+    await changePasswordRequest(pwd.current, pwd.next)
+    pwd.current = ''
+    pwd.next = ''
+    pwd.confirm = ''
+    setMsg('success', '密码已更新。建议在所有设备重新登录。')
+  } catch (e: unknown) {
+    // axios 错误结构：err.response.data.message，可能是字符串或字符串数组
+    const err = e as { response?: { status?: number; data?: { message?: string | string[] } } }
+    const status = err?.response?.status
+    const raw = err?.response?.data?.message
+    const text = Array.isArray(raw) ? raw.join('; ') : raw
+    if (status === 401) setMsg('error', text || '当前密码不正确')
+    else if (status === 429) setMsg('error', '请求过于频繁，稍后再试')
+    else setMsg('error', text || '修改失败，请稍后再试')
+  } finally {
+    pwd.submitting = false
+  }
+}
 </script>
 
 <style scoped>
@@ -169,4 +320,22 @@ const form = reactive({
   cursor: pointer;
 }
 .primary:hover { opacity: 0.92; }
+.primary:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.ai-desc {
+  font-size: 13px;
+  color: var(--ink-2);
+  line-height: 1.65;
+  margin: 0 0 14px;
+}
+
+.pwd-msg {
+  font-size: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin: 6px 0 12px;
+}
+.pwd-msg.info    { background: var(--bg); color: var(--ink-2); }
+.pwd-msg.error   { background: #fdecec; color: #b3261e; }
+.pwd-msg.success { background: #e8f5ee; color: #1f7a3e; }
 </style>
