@@ -67,11 +67,16 @@ services:
     build:
       context: ./apps/ai-service
     restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
     environment:
       XIAOMI_MIMO_API_KEY: ${XIAOMI_MIMO_API_KEY}
       XIAOMI_MIMO_BASE_URL: ${XIAOMI_MIMO_BASE_URL}
       XIAOMI_MIMO_MODEL: ${XIAOMI_MIMO_MODEL}
       USE_MOCK_LLM: ${USE_MOCK_LLM:-false}
+      # AI2 起 ai-service 自己直读 articles 表做 RAG 检索
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
     healthcheck:
       # python:3.12-slim 没有 wget,改用 python 自带 urllib
       test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8001/healthz', timeout=3).status==200 else 1)"]
