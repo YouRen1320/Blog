@@ -61,9 +61,23 @@ jobs:
         working-directory: apps/mobile
         run: flutter pub get
 
-      - name: Build APK
+      - name: Diagnostic before build
         working-directory: apps/mobile
-        run: flutter build apk --release
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          ls -la "$ANDROID_HOME" 2>&1 | head -20 || true
+          flutter doctor -v 2>&1 | tail -40
+
+      - name: Build APK (verbose, tee to log)
+        working-directory: apps/mobile
+        run: |
+          set -o pipefail
+          flutter build apk --release --verbose 2>&1 | tee /tmp/apk-build.log
+
+      - name: Show build log on failure
+        if: failure()
+        run: tail -200 /tmp/apk-build.log || true
 
       - name: Show APK info
         working-directory: apps/mobile
