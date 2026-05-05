@@ -34,6 +34,7 @@
       <div class="footer">
         <span>◷ {{ post.date }}</span>
         <span>⌖ {{ post.readingTime }}</span>
+        <span v-if="post.commentCount && post.commentCount > 0">💬 {{ post.commentCount }}</span>
         <span class="spacer" />
         <span v-if="post.pinned" class="pinned">★ 置顶</span>
       </div>
@@ -57,6 +58,8 @@ interface PostCard {
   readingTime: string
   pinned?: boolean
   seed?: number
+  // V1.19:已审核评论数,>0 才渲染 💬 N
+  commentCount?: number
 }
 
 defineProps<{

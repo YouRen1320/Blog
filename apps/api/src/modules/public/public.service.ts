@@ -1,8 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { ArticleStatus, Prisma } from '@prisma/client';
+import { ArticleStatus, CommentStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { paginate, PaginationQueryDto } from '../../common/dto/pagination.dto';
 
+// V1.19:列表加 _count.comments(只算 APPROVED),前端展示评论数
 const publicArticleSelect = {
   id: true,
   title: true,
@@ -12,6 +13,7 @@ const publicArticleSelect = {
   publishedAt: true,
   category: { select: { id: true, name: true, slug: true } },
   tags: { select: { tag: { select: { id: true, name: true, slug: true } } } },
+  _count: { select: { comments: { where: { status: CommentStatus.APPROVED } } } },
 } satisfies Prisma.ArticleSelect;
 
 const publicArticleDetailSelect = {

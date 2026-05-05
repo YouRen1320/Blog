@@ -14,6 +14,8 @@ export interface PublicArticle {
   publishedAt: string
   category: { id: string; name: string; slug: string } | null
   tags: { tag: { id: string; name: string; slug: string } }[]
+  // V1.19:后端 _count.comments 只统计 APPROVED,展示用
+  _count?: { comments: number }
 }
 
 export interface PublicArticleDetail extends PublicArticle {

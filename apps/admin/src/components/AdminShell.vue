@@ -21,7 +21,11 @@
             <span class="nav-icon">{{ item.icon }}</span>
             <span>{{ item.label }}</span>
           </span>
-          <span v-if="item.badge" class="mono nav-badge">{{ item.badge }}</span>
+          <span
+            v-if="item.badge"
+            class="mono nav-badge"
+            :class="{ 'badge-alert': item.key === 'comments' }"
+          >{{ item.badge }}</span>
         </RouterLink>
       </nav>
 
@@ -43,10 +47,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useTheme } from '../composables/useTheme'
 import { useAuthStore } from '../stores/auth'
+import { fetchStatsOverview } from '../api/stats'
 
 defineProps<{
   // 当前激活的导航项 key；与下方 items 对应。
@@ -56,8 +61,9 @@ defineProps<{
 const { dark, toggle } = useTheme()
 
 // 主导航数据：badge 为可选数字，用来在 AI 草稿这类"待处理"项上显示数量。
+type NavKey = 'dashboard' | 'writing' | 'drafts' | 'tags' | 'cats' | 'comments' | 'users' | 'settings'
 type NavItem = {
-  key: 'dashboard' | 'writing' | 'drafts' | 'tags' | 'cats' | 'comments' | 'users' | 'settings'
+  key: NavKey
   icon: string
   label: string
   to: string
@@ -65,22 +71,39 @@ type NavItem = {
   adminOnly?: boolean
 }
 
-const items: NavItem[] = [
+// V1.19:Comments badge 从 stats overview 取 pending 数,>0 才显示提醒 ADMIN 去审核
+const pendingComments = ref(0)
+
+const items = computed<NavItem[]>(() => [
   { key: 'dashboard', icon: '○', label: 'Index', to: '/dashboard' },
   { key: 'writing', icon: '✎', label: 'Writing', to: '/articles' },
   { key: 'drafts', icon: '✦', label: 'AI Drafts', to: '/inbox' },
   { key: 'tags', icon: '#', label: 'Tags', to: '/tags' },
   { key: 'cats', icon: '◐', label: 'Categories', to: '/categories' },
-  { key: 'comments', icon: '✉', label: 'Comments', to: '/comments', adminOnly: true },
+  {
+    key: 'comments', icon: '✉', label: 'Comments', to: '/comments', adminOnly: true,
+    badge: pendingComments.value > 0 ? String(pendingComments.value) : undefined,
+  },
   { key: 'users', icon: '◍', label: 'Users', to: '/users', adminOnly: true },
   { key: 'settings', icon: '⚙', label: 'Settings', to: '/settings' },
-]
+])
 
 // USER role 看不到 adminOnly 项(comments / users)
 const auth = useAuthStore()
 const visibleItems = computed(() =>
-  items.filter((it) => !it.adminOnly || auth.user?.role === 'ADMIN'),
+  items.value.filter((it) => !it.adminOnly || auth.user?.role === 'ADMIN'),
 )
+
+// 只在 ADMIN 时拉 stats(USER 调这个 endpoint 会 403)。失败静默,badge 不显示就行。
+onMounted(async () => {
+  if (auth.user?.role !== 'ADMIN') return
+  try {
+    const stats = await fetchStatsOverview()
+    pendingComments.value = stats.comments.pending
+  } catch {
+    /* 静默 */
+  }
+})
 </script>
 
 <style scoped>
@@ -148,6 +171,15 @@ const visibleItems = computed(() =>
 .nav-badge {
   font-size: 10px;
   color: var(--accent);
+}
+/* 待审核评论 → 暖红圆形小药丸,不抢但显眼,提醒 ADMIN 去审 */
+.nav-badge.badge-alert {
+  background: #B95C50;
+  color: #FFF;
+  border-radius: 999px;
+  padding: 1px 7px;
+  min-width: 18px;
+  text-align: center;
 }
 
 .user {

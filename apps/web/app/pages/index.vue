@@ -139,6 +139,7 @@ const postList = computed(() => {
       // 列表里没有 content,先粗估"3 min read";详情页才有真正字数
       readingTime: '3 min read',
       seed: seedFromId(a.id),
+      commentCount: a._count?.comments ?? 0,
     },
   }))
 })
