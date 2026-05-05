@@ -57,6 +57,16 @@ jobs:
       - name: Accept any remaining licenses
         run: yes | flutter doctor --android-licenses || true
 
+      # apps/mobile/pubspec.yaml 把 .env 声明为 asset,但 .env 是 gitignored,
+      # CI 拉不到。release APK 装到真机要直接连生产,这里写一份指向 iyouren.top 的 .env
+      - name: Generate production .env
+        working-directory: apps/mobile
+        run: |
+          cat > .env <<EOF
+          API_BASE_URL=https://www.iyouren.top/api
+          EOF
+          cat .env
+
       - name: Pub get
         working-directory: apps/mobile
         run: flutter pub get
