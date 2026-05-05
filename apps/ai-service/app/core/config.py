@@ -31,6 +31,12 @@ class Settings(BaseSettings):
         description="开发期为 true 时走假数据,不调外部 API,避免烧 quota",
     )
 
+    # AI2-04 起 RAG 需要直读 articles 表
+    DATABASE_URL: str = Field(
+        default="postgresql://blog:blog@localhost:5432/blog",
+        description="Postgres 连接串(读 articles.embedding 做相似度检索)",
+    )
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:

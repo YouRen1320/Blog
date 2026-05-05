@@ -11,6 +11,7 @@ import { CategoriesModule } from './modules/categories/categories.module';
 import { TagsModule } from './modules/tags/tags.module';
 import { PublicModule } from './modules/public/public.module';
 import { AiModule } from './modules/ai/ai.module';
+import { EmbeddingModule } from './modules/embedding/embedding.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { validateEnv } from './config/env.validation';
@@ -62,6 +63,7 @@ import { validateEnv } from './config/env.validation';
           ],
     ),
     PrismaModule,
+    EmbeddingModule,
     AuthModule,
     UsersModule,
     ArticlesModule,

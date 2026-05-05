@@ -2,6 +2,7 @@ import { Test } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { ArticlesService } from './articles.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { EmbeddingService } from '../embedding/embedding.service';
 
 /**
  * 重点测发布状态机的"重发不刷时间"逻辑(容易被改坏)和 NotFound 路径。
@@ -19,7 +20,11 @@ describe('ArticlesService', () => {
       },
     };
     const moduleRef = await Test.createTestingModule({
-      providers: [ArticlesService, { provide: PrismaService, useValue: prismaMock }],
+      providers: [
+        ArticlesService,
+        { provide: PrismaService, useValue: prismaMock },
+        { provide: EmbeddingService, useValue: { embedArticle: jest.fn() } },
+      ],
     }).compile();
     service = moduleRef.get(ArticlesService);
   });

@@ -14,6 +14,14 @@ dependencies = [
     "pydantic-settings>=2.5.0",
     # HTTPx 已被 anthropic 间接依赖,这里显式列出方便手写 client
     "httpx>=0.27.0",
+    # 本地 embedding(BGE-small-zh-v1.5,中文好,~100MB,ONNX runtime,推理 < 100ms)
+    "fastembed>=0.4.0",
+    # pg 客户端 + 向量扩展支持
+    "psycopg[binary]>=3.2.0",
+    "pgvector>=0.3.0",
+    # LangGraph(单独装,不引整个 langchain 仓库),AI2-05 用
+    "langgraph>=0.2.50",
+    "langchain-core>=0.3.0",
 ]
 
 [project.optional-dependencies]

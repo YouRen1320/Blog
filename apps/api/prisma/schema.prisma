@@ -52,6 +52,9 @@ model Article {
   authorId    String
   categoryId  String?
   publishedAt DateTime?
+  // 512 维向量(BGE-small-zh-v1.5 输出)。Prisma 不原生支持 vector,
+  // 用 Unsupported 占位,业务层走 raw SQL 写入(`embedding = $1::vector(512)`)
+  embedding   Unsupported("vector(512)")?
   author      User          @relation(fields: [authorId], references: [id], onDelete: Restrict)
   category    Category?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   tags        ArticleTag[]

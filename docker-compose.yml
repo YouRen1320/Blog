@@ -1,6 +1,7 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    # 改用 pgvector 镜像,内置 vector 扩展(向后兼容 postgres:16,文档:https://github.com/pgvector/pgvector)
+    image: pgvector/pgvector:pg16
     container_name: blog-postgres
     restart: unless-stopped
     ports:

@@ -3,6 +3,7 @@ import { ArticleStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { paginate } from '../../common/dto/pagination.dto';
 import { makeSlug } from '../../common/utils/slug';
+import { EmbeddingService } from '../embedding/embedding.service';
 import { CreateArticleDto } from './dto/create-article.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
 import { ArticleQueryDto } from './dto/article-query.dto';
@@ -20,7 +21,10 @@ const articleInclude = {
 
 @Injectable()
 export class ArticlesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly embedding: EmbeddingService,
+  ) {}
 
   async listAdmin(query: ArticleQueryDto) {
     const { page, pageSize, status, source } = query;
@@ -104,7 +108,7 @@ export class ArticlesService {
 
   async publish(id: string) {
     const article = await this.findById(id);
-    return this.prisma.article.update({
+    const updated = await this.prisma.article.update({
       where: { id },
       data: {
         status: ArticleStatus.PUBLISHED,
@@ -113,6 +117,9 @@ export class ArticlesService {
       },
       include: articleInclude,
     });
+    // 发布后异步算 embedding,不让 RAG 索引拖慢用户的 publish 响应
+    void this.embedding.embedArticle(id);
+    return updated;
   }
 
   async unpublish(id: string) {

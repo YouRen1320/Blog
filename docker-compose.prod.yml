@@ -9,7 +9,8 @@
 
 services:
   postgres:
-    image: postgres:16-alpine
+    # pgvector 镜像内置 vector 扩展,基于 postgres:16,跟原镜像数据兼容
+    image: pgvector/pgvector:pg16
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}

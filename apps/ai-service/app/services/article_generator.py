@@ -11,6 +11,7 @@ import logging
 from app.core.config import get_settings
 from app.schemas.draft import DraftRequest, DraftResponse
 from app.services.mimo_client import get_mimo_client
+from app.services.retriever import retrieve
 
 log = logging.getLogger(__name__)
 
@@ -63,10 +64,29 @@ async def generate_article_draft(req: DraftRequest) -> DraftResponse:
     if settings.USE_MOCK_LLM:
         return _mock_draft(req)
 
+    # AI2-04 起:RAG 检索作者历史文章,作为风格 + 知识参考塞进 prompt
+    # 失败时不阻塞生成 —— 检索是增益,不是必需
+    rag_context = ""
+    try:
+        retrieved = retrieve(req.prompt, top_k=3, min_similarity=0.5)
+        if retrieved:
+            rag_context = "\n\n## 你已有的相关旧文(参考语气 + 已写过的内容,不要重复造)\n"
+            for i, art in enumerate(retrieved, 1):
+                rag_context += (
+                    f"\n### 旧文 {i} · 「{art.title}」(slug: {art.slug}, 相似度 {art.similarity:.2f})\n"
+                    f"摘要:{art.summary or '(无)'}\n"
+                    f"正文片段:\n{art.content[:600]}...\n"
+                )
+            log.info("RAG: injecting %d articles into context (total %d chars)", len(retrieved), len(rag_context))
+    except Exception as e:
+        log.warning("RAG retrieve failed, generating without context: %s", e)
+
     client = get_mimo_client()
     system = (
         "你是 Youren 的博客写作助手。读完用户描述后,产出可立刻进入草稿箱的中文文章。\n"
-        "输出**必须**通过工具 save_article_draft,不要返回纯文本。"
+        "输出**必须**通过工具 save_article_draft,不要返回纯文本。\n"
+        "如果下面给出了'相关旧文',先读完,新文章的语气和说理方式要跟旧文一致;\n"
+        "可以用 [文章 slug] 这种风格引用旧文,但不要复制粘贴整段。"
     )
     user = (
         f"创作意图:{req.prompt}\n\n"
@@ -74,6 +94,7 @@ async def generate_article_draft(req: DraftRequest) -> DraftResponse:
         f"长度:{_LENGTH_GUIDANCE[req.length]}\n"
         f"目标语言:{req.language}\n\n"
         "正文用 Markdown,含至少一个 h2 二级标题、一个 blockquote。"
+        f"{rag_context}"
     )
 
     response = await client.messages.create(
