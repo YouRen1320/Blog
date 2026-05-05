@@ -20,8 +20,7 @@ LangGraph 流程:
 import logging
 from functools import lru_cache
 
-from fastembed.rerank.cross_encoder import TextCrossEncoder
-
+from app.core.config import get_settings
 from app.services.retriever import RetrievedArticle
 
 log = logging.getLogger(__name__)
@@ -30,9 +29,15 @@ RERANK_MODEL = "BAAI/bge-reranker-base"
 
 
 @lru_cache(maxsize=1)
-def _get_reranker() -> TextCrossEncoder:
-    """单例。首次调用时下载模型(~1GB),后续命中本地缓存。"""
-    log.info("loading reranker: %s", RERANK_MODEL)
+def _get_reranker():
+    """
+    单例。首次调用时下载 1GB 模型,后续命中本地缓存。
+    fastembed.rerank.cross_encoder 模块在 import 时就会拉一些 onnxruntime 依赖,
+    所以延迟到这里才 import,RERANK_ENABLED=false 时整个模块都不加载。
+    """
+    from fastembed.rerank.cross_encoder import TextCrossEncoder
+
+    log.info("loading reranker: %s (this allocates ~1GB)", RERANK_MODEL)
     return TextCrossEncoder(model_name=RERANK_MODEL)
 
 
@@ -46,9 +51,15 @@ def rerank(
 
     用 title + summary + content 前 600 字作为 doc 文本(跟 retrieve 时
     embedding 的内容范围一致,排序结果不会因为"看的部分不同"漂移)。
+
+    RERANK_ENABLED=false 时直接返回 candidates 前 top_n,不加载模型。
+    适合小内存(< 4GB)的服务器,代价是检索精度回到 retrieve bi-encoder 水平。
     """
     if not candidates:
         return []
+
+    if not get_settings().RERANK_ENABLED:
+        return candidates[:top_n]
 
     docs = [
         f"{c.title}\n\n{c.summary or ''}\n\n{c.content[:600]}"

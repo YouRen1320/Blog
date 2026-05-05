@@ -60,6 +60,14 @@ class Settings(BaseSettings):
         description="开发期为 true 时走假数据,不调外部 API,避免烧 quota",
     )
 
+    # RAG reranking 开关。BGE-reranker-base 1GB ONNX 模型常驻 ~700MB 内存,
+    # 小内存(2GB ECS 那种)生产建议关掉,直接用 retrieve top_n 也能用。
+    # 关掉时 services/reranker.py 的 rerank() 直接返回 candidates[:top_n] 不下载模型
+    RERANK_ENABLED: bool = Field(
+        default=False,
+        description="是否启用 BGE-reranker(false 时省 ~1GB 内存)",
+    )
+
     # LangFuse 追踪(可选,LiteLLM 自动接入)
     # 三个 env 都设了才启用;否则 router 不挂 callback,无副作用
     LANGFUSE_PUBLIC_KEY: str = Field("", description="LangFuse public key (pk_lf_...)")
