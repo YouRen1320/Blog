@@ -25,7 +25,7 @@
           target="_blank"
           rel="noopener noreferrer"
         >
-          <span class="chip-text">{{ social.text }}</span>
+          <img :src="social.icon" :alt="social.label" class="chip-icon">
         </a>
       </div>
     </div>
@@ -106,13 +106,17 @@ const tags = [
   'Resolute Tag Opponent',
 ]
 
-// 圆形 chip:外部社交平台主页入口。
-// 用单字而非 SVG 图标 —— 视觉上更克制,且不依赖第三方 brand assets。
+// 圆形 chip:外部社交平台主页入口。SVG 来自 assets/svg。
+import bilibiliIcon from '../assets/svg/B站.svg'
+import zhihuIcon from '../assets/svg/知乎.svg'
+import xhsIcon from '../assets/svg/小红书.svg'
+import githubIcon from '../assets/svg/github-fill.svg'
+
 const socials = [
-  { label: 'Bilibili', href: 'https://space.bilibili.com/43729664', text: 'B' },
-  { label: '知乎', href: 'https://www.zhihu.com/people/qian-shang-60-73-8', text: '知' },
-  { label: '小红书', href: 'https://www.xiaohongshu.com/user/profile/628e49eb00000000150198d8', text: '红' },
-  { label: 'GitHub', href: 'https://github.com/YouRen1320', text: 'G' },
+  { label: 'Bilibili', href: 'https://space.bilibili.com/43729664', icon: bilibiliIcon },
+  { label: '知乎', href: 'https://www.zhihu.com/people/qian-shang-60-73-8', icon: zhihuIcon },
+  { label: '小红书', href: 'https://www.xiaohongshu.com/user/profile/628e49eb00000000150198d8', icon: xhsIcon },
+  { label: 'GitHub', href: 'https://github.com/YouRen1320', icon: githubIcon },
 ]
 
 // 首页只展示最新 6 篇,长列表去 /writing。
@@ -206,19 +210,12 @@ const postList = computed(() => {
 .chip:hover { transform: translateY(-2px); }
 
 .chip-icon {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   object-fit: contain;
   opacity: 0.85;
 }
-/* social chip 用单字代替 icon —— 衬线大写,在浅色 chip 里读起来像 logomark */
-.chip-text {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--ink-2);
-  font-family: 'Crimson Pro', Georgia, serif;
-}
-.chip:hover .chip-text { color: var(--ink); }
+.chip:hover .chip-icon { opacity: 1; }
 
 .portrait {
   position: relative;
