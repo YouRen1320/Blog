@@ -30,8 +30,10 @@
             <RouterLink :to="`/editor/${a.id}`" class="cn row-title">{{ a.title }}</RouterLink>
             <span class="mono row-time">{{ formatDate(a.updatedAt) }}</span>
           </div>
-          <div v-if="recent.length === 0" class="row first empty">
-            <span class="mono">还没有文章。<RouterLink to="/editor">新建一篇 →</RouterLink></span>
+          <div v-if="recent.length === 0" class="empty-state">
+            <div class="empty-icon">✎</div>
+            <p class="cn">还没有文章</p>
+            <RouterLink to="/editor" class="link">新建一篇 →</RouterLink>
           </div>
         </section>
 
@@ -171,12 +173,14 @@ function formatBigNum(n: number): string {
 .placeholder strong { color: var(--accent); font-weight: 600; }
 .placeholder .hint { font-size: 10px; color: var(--ink-3); margin-top: 8px; letter-spacing: 0.14em; }
 
-/* PENDING REVIEW 卡 —— 让占满高度,placeholder 垂直居中,空状态有视觉重量 */
-.review-card {
+/* PENDING REVIEW + RECENT ARTICLES 两张卡的空状态:都占满高度 + 内容居中 */
+.review-card,
+.recent-card {
   display: flex;
   flex-direction: column;
 }
-.review-card .placeholder {
+.review-card .placeholder,
+.recent-card .empty-state {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -184,7 +188,7 @@ function formatBigNum(n: number): string {
   justify-content: center;
   text-align: center;
   padding: 24px 24px 32px;
-  gap: 4px;
+  gap: 8px;
 }
 .empty-icon {
   font-size: 28px;
@@ -197,8 +201,16 @@ function formatBigNum(n: number): string {
   place-items: center;
   margin-bottom: 8px;
 }
+.empty-state .cn {
+  font-size: 14px;
+  color: var(--ink-2);
+  margin: 0;
+}
+.empty-state .link {
+  margin-top: 4px;
+  font-size: 12px;
+}
 .pending-line { font-size: 16px; }
-.recent-card { display: flex; flex-direction: column; }
 .link { color: var(--accent); font-size: 12px; text-decoration: none; }
 .link:hover { text-decoration: underline; }
 

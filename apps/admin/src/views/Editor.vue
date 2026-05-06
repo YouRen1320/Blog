@@ -538,14 +538,32 @@ function actionLabel(a: InlineAction): string {
 .cover-hint { font-size: 11px; color: var(--ink-3); padding: 6px 12px; text-align: center; }
 .cover-input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 
-.tags-edit { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.tags-label { font-size: 10px; letter-spacing: 0.16em; color: var(--ink-3); }
+/* TAGS 行:标签头单独一行,pills 选中后用 accent 颜色明显区分 */
+.tags-edit { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tags-label {
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  color: var(--ink-3);
+  margin-right: 4px;
+}
 .tag-pill {
   display: inline-flex; align-items: center; gap: 6px;
-  padding: 4px 10px; background: var(--bg); border-radius: 6px;
+  padding: 5px 12px;
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
   font-size: 12px; cursor: pointer; color: var(--ink-2);
+  user-select: none;
+  transition: all 0.15s ease;
 }
-.tag-pill input { margin: 0; }
+.tag-pill:hover { border-color: var(--accent); color: var(--accent); }
+/* 隐藏原生 checkbox,用 :has() 改 pill 自身的样式 */
+.tag-pill input { position: absolute; opacity: 0; pointer-events: none; }
+.tag-pill:has(input:checked) {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg);
+}
 
 .content-upload-hint {
   font-size: 11px;
@@ -576,10 +594,18 @@ function actionLabel(a: InlineAction): string {
 }
 .preview-toggle:hover { border-color: var(--accent); color: var(--accent); }
 
-.content-pane { position: relative; }
+/* content-pane 撑高:editor 是 flex column,这里 flex:1 把剩下高度全吃下,
+   再让内部 textarea / preview 各自 100% 撑满 —— 正文区永远占满到底部 */
+.content-pane {
+  position: relative;
+  flex: 1;
+  display: flex;
+  min-height: 360px;
+}
 
 .content-preview {
-  min-height: 400px;
+  flex: 1;
+  width: 100%;
   padding: 18px 22px;
   background: var(--bg);
   border: 1px solid var(--rule);
@@ -588,7 +614,7 @@ function actionLabel(a: InlineAction): string {
   line-height: 1.85;
   color: var(--ink);
   overflow-y: auto;
-  max-height: 70vh;
+  box-sizing: border-box;
 }
 .content-preview :deep(h2) { font-size: 20px; font-weight: 600; margin: 20px 0 10px; color: var(--ink); }
 .content-preview :deep(h3) { font-size: 17px; font-weight: 600; margin: 16px 0 8px; }
@@ -622,11 +648,15 @@ function actionLabel(a: InlineAction): string {
 .content-preview :deep(em) { color: var(--ink-3); }
 
 .content-area {
-  flex: 1; min-height: 300px; padding: 14px;
+  flex: 1;
+  width: 100%;
+  padding: 14px;
   background: var(--bg); border: 1px solid var(--rule); border-radius: 10px;
-  font-size: 14px; line-height: 1.7; color: var(--ink); resize: vertical;
+  font-size: 14px; line-height: 1.7; color: var(--ink);
+  resize: none;  /* 不要让用户拖手柄改高度,固定撑满父容器 */
   font-family: 'JetBrains Mono', monospace;
   outline: none;
+  box-sizing: border-box;
 }
 
 .aside { padding: 24px 22px; display: flex; flex-direction: column; gap: 18px; align-self: start; position: sticky; top: 24px; }

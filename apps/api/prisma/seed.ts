@@ -29,10 +29,13 @@ async function main() {
   });
 
   // ── 分类 ─────────────────────────────────────────
+  // 技术线 + 生活线两类:博客既写代码也记生活
   const categoriesData = [
     { name: "前端", slug: "frontend", description: "Web 前端工程实践" },
     { name: "后端", slug: "backend", description: "NestJS / Prisma / 数据库" },
     { name: "DevOps", slug: "devops", description: "Docker / CI/CD / 部署" },
+    { name: "日常", slug: "daily", description: "生活、读书、随笔" },
+    { name: "思考", slug: "thoughts", description: "对世界的观察与判断" },
   ];
   const categories = await Promise.all(
     categoriesData.map((c) =>
