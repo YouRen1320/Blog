@@ -40,7 +40,8 @@
       </button>
 
       <div class="mono foot">
-        <RouterLink to="/register" class="forgot">没账号?注册 →</RouterLink>
+        <!-- 注册入口暂时关闭(单作者模式)。日后开放注册时把下行取消注释 -->
+        <!-- <RouterLink to="/register" class="forgot">没账号?注册 →</RouterLink> -->
         <span>JWT · BEARER</span>
       </div>
     </form>

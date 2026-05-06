@@ -11,7 +11,7 @@ import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
-import { RegisterDto } from './dto/register.dto';
+// import { RegisterDto } from './dto/register.dto'; // 注册关闭后暂不引入
 import { Public } from '../../common/decorators/public.decorator';
 import {
   CurrentUser,
@@ -32,16 +32,17 @@ export class AuthController {
   }
 
   /**
-   * 公开注册。永远创建 USER role,ADMIN 由现有 ADMIN 在后台升级。
-   * strict 限流防爬虫批量注册。
+   * 公开注册 —— 单作者博客阶段先关闭,只保留 ADMIN 在后台 /admin/users
+   * 创建账号。日后想开放注册时,把下面整段取消注释 + 同步打开
+   * apps/admin 的 /register 路由 + Login 页入口即可。
    */
-  @Throttle({ strict: { limit: 5, ttl: 60_000 } })
-  @Public()
-  @HttpCode(HttpStatus.CREATED)
-  @Post('register')
-  register(@Body() dto: RegisterDto) {
-    return this.auth.register(dto.username, dto.email, dto.password);
-  }
+  // @Throttle({ strict: { limit: 5, ttl: 60_000 } })
+  // @Public()
+  // @HttpCode(HttpStatus.CREATED)
+  // @Post('register')
+  // register(@Body() dto: RegisterDto) {
+  //   return this.auth.register(dto.username, dto.email, dto.password);
+  // }
 
   @Get('profile')
   profile(@CurrentUser() user: AuthUser) {

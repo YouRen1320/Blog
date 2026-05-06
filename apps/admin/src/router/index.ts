@@ -9,7 +9,8 @@ import { useAuthStore } from '../stores/auth'
 const routes = [
   { path: '/', redirect: '/dashboard' },
   { path: '/login', name: 'login', component: () => import('../views/Login.vue'), meta: { requiresAuth: false } },
-  { path: '/register', name: 'register', component: () => import('../views/Register.vue'), meta: { requiresAuth: false } },
+  // 注册路由暂时关闭(单作者模式),日后开放再取消注释:
+  // { path: '/register', name: 'register', component: () => import('../views/Register.vue'), meta: { requiresAuth: false } },
   { path: '/dashboard', name: 'dashboard', component: () => import('../views/Dashboard.vue') },
   { path: '/articles', name: 'articles', component: () => import('../views/Articles.vue') },
   { path: '/editor', name: 'editor', component: () => import('../views/Editor.vue') },
@@ -33,7 +34,7 @@ router.beforeEach((to) => {
   if (requiresAuth && !auth.isAuthenticated) {
     return { name: 'login', query: { redirect: to.fullPath } }
   }
-  if ((to.name === 'login' || to.name === 'register') && auth.isAuthenticated) {
+  if (to.name === 'login' && auth.isAuthenticated) {
     return { name: 'dashboard' }
   }
 })

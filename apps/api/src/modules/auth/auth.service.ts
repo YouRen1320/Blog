@@ -1,6 +1,6 @@
 import {
   BadRequestException,
-  ConflictException,
+  // ConflictException,  // 关掉公开注册后暂未使用,日后恢复 register() 时一并恢复
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -19,39 +19,39 @@ export class AuthService {
   ) {}
 
   /**
-   * 公开注册 —— 永远创建 USER role。
-   * username / email 任一冲突都返 409。
-   * 注册后**立即返回 token**(自动登录)免去再走一次 login。
+   * 公开注册(单作者模式下整体关闭) —— 控制器已注释,这里 service 一并注释,
+   * 做 defense-in-depth,防止以后有人取消注释 controller 但忘了这块也跟着活。
+   * 日后开放注册时同步取消下面的注释即可,逻辑不用重写。
    */
-  async register(username: string, email: string, password: string) {
-    const exists = await this.prisma.user.findFirst({
-      where: { OR: [{ email }, { username }] },
-      select: { email: true, username: true },
-    });
-    if (exists) {
-      throw new ConflictException(
-        exists.email === email ? '该邮箱已被注册' : '该用户名已被使用',
-      );
-    }
-    const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
-    const user = await this.prisma.user.create({
-      data: { username, email, passwordHash, role: 'USER' },
-    });
-    const accessToken = await this.jwt.signAsync({
-      sub: user.id,
-      email: user.email,
-      role: user.role,
-    });
-    return {
-      accessToken,
-      user: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        role: user.role,
-      },
-    };
-  }
+  // async register(username: string, email: string, password: string) {
+  //   const exists = await this.prisma.user.findFirst({
+  //     where: { OR: [{ email }, { username }] },
+  //     select: { email: true, username: true },
+  //   });
+  //   if (exists) {
+  //     throw new ConflictException(
+  //       exists.email === email ? '该邮箱已被注册' : '该用户名已被使用',
+  //     );
+  //   }
+  //   const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+  //   const user = await this.prisma.user.create({
+  //     data: { username, email, passwordHash, role: 'USER' },
+  //   });
+  //   const accessToken = await this.jwt.signAsync({
+  //     sub: user.id,
+  //     email: user.email,
+  //     role: user.role,
+  //   });
+  //   return {
+  //     accessToken,
+  //     user: {
+  //       id: user.id,
+  //       username: user.username,
+  //       email: user.email,
+  //       role: user.role,
+  //     },
+  //   };
+  // }
 
   async login(email: string, password: string) {
     const user = await this.prisma.user.findUnique({ where: { email } });
