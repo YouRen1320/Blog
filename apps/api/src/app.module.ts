@@ -2,7 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ServeStaticModule } from '@nestjs/serve-static';
-import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { CnThrottlerGuard } from './common/guards/cn-throttler.guard';
 import { LoggerModule } from 'nestjs-pino';
 import { join } from 'node:path';
 import { PrismaModule } from './prisma/prisma.module';
@@ -53,9 +54,12 @@ import { validateEnv } from './config/env.validation';
       },
     }),
     // 速率限制:三档命名,具体接口用 @Throttle 显式覆盖
-    // - default:60 req/min,基线
-    // - strict :5 req/min,登录等防爆破
-    // - ai     :10 req/min,AI 生成防 quota 烧光
+    // - default:200 req/min,基线(后台一次进 dashboard 就 4-6 个并发请求,
+    //                         留余量给路由切换 + admin 重渲染)
+    // - strict :高基线,登录/注册/改密在 controller 上 @Throttle 收紧到 5/min
+    // - ai     :高基线,AI inline / drafts 在 controller 上 @Throttle 收紧到 10/min
+    // ! nestjs-throttler 多桶语义:每个命名桶都对所有请求生效,即使 controller 没用 @Throttle。
+    //   所以 strict / ai 的"基线"必须够大,否则普通 GET 都会被收紧到 5 / 10。
     // 测试环境(NODE_ENV=test)放宽到很高,避免 e2e 测试被限流误伤
     ThrottlerModule.forRoot(
       process.env.NODE_ENV === 'test'
@@ -65,9 +69,9 @@ import { validateEnv } from './config/env.validation';
             { name: 'ai', ttl: 60_000, limit: 10_000 },
           ]
         : [
-            { name: 'default', ttl: 60_000, limit: 60 },
-            { name: 'strict', ttl: 60_000, limit: 5 },
-            { name: 'ai', ttl: 60_000, limit: 10 },
+            { name: 'default', ttl: 60_000, limit: 200 },
+            { name: 'strict', ttl: 60_000, limit: 1000 },
+            { name: 'ai', ttl: 60_000, limit: 1000 },
           ],
     ),
     PrismaModule,
@@ -100,7 +104,7 @@ import { validateEnv } from './config/env.validation';
     // 测试环境跳过 ThrottlerGuard,避免 e2e 测试被 5/min 限流误伤
     ...(process.env.NODE_ENV === 'test'
       ? []
-      : [{ provide: APP_GUARD, useClass: ThrottlerGuard }]),
+      : [{ provide: APP_GUARD, useClass: CnThrottlerGuard }]),
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
   ],

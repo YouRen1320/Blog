@@ -23,7 +23,7 @@
       </div>
 
       <div class="split">
-        <section class="card">
+        <section class="card recent-card">
           <div class="mono section-kicker">RECENT ARTICLES</div>
           <div v-for="(a, i) in recent" :key="a.id" class="row" :class="{ first: i === 0 }">
             <span class="mono row-action" :class="{ accent: a.status === 'PUBLISHED' }">{{ a.status }}</span>
@@ -35,13 +35,14 @@
           </div>
         </section>
 
-        <section class="card">
+        <section class="card review-card">
           <div class="mono section-kicker accent">✦ PENDING REVIEW</div>
           <div v-if="stats && stats.comments.pending > 0" class="placeholder">
-            <p class="cn"><strong>{{ stats.comments.pending }}</strong> 条评论等你审。</p>
+            <p class="cn pending-line"><strong>{{ stats.comments.pending }}</strong> 条评论等你审。</p>
             <RouterLink to="/comments" class="link">前往审核 →</RouterLink>
           </div>
-          <div v-else class="placeholder">
+          <div v-else class="placeholder empty-state">
+            <div class="empty-icon">✓</div>
             <p class="cn">收件箱清空。</p>
             <p class="hint mono">TODAY · {{ stats?.today.commented ?? 0 }} 条新评论 · {{ stats?.today.published ?? 0 }} 篇新文</p>
           </div>
@@ -57,6 +58,7 @@ import { RouterLink } from 'vue-router'
 import AdminShell from '../components/AdminShell.vue'
 import { listArticles, type ArticleSummary } from '../api/articles'
 import { fetchStatsOverview, type StatsOverview } from '../api/stats'
+import { fetchSettings, type SiteSettings } from '../api/settings'
 import { useAuthStore } from '../stores/auth'
 
 const auth = useAuthStore()
@@ -70,8 +72,14 @@ const greeting = computed(() => {
 
 const stats = ref<StatsOverview | null>(null)
 const recent = ref<ArticleSummary[]>([])
+// V1.21:欢迎语用站点名(SiteSetting.title),而不是登录用户名
+// —— 单作者博客场景下"欢迎,YouRen"比"欢迎,admin"更自然
+const settings = ref<SiteSettings | null>(null)
 
-const heroLine = computed(() => `欢迎,${auth.user?.username ?? 'admin'}。`)
+const heroLine = computed(() => {
+  const name = settings.value?.title || auth.user?.username || 'YouRen'
+  return `欢迎,${name}。`
+})
 
 const todoLine = computed(() => {
   if (!stats.value) return ''
@@ -98,12 +106,14 @@ const metricCards = computed(() => {
 
 onMounted(async () => {
   try {
-    const [overview, recentRes] = await Promise.all([
+    const [overview, recentRes, siteSettings] = await Promise.all([
       fetchStatsOverview().catch(() => null),
       listArticles({ pageSize: 5 }),
+      fetchSettings().catch(() => null),
     ])
     stats.value = overview
     recent.value = recentRes.data
+    settings.value = siteSettings
   } catch {
     /* dashboard 失败不阻塞页面 */
   }
@@ -160,6 +170,35 @@ function formatBigNum(n: number): string {
 .placeholder .cn { font-size: 14px; color: var(--ink-2); margin: 4px 0 12px; }
 .placeholder strong { color: var(--accent); font-weight: 600; }
 .placeholder .hint { font-size: 10px; color: var(--ink-3); margin-top: 8px; letter-spacing: 0.14em; }
+
+/* PENDING REVIEW 卡 —— 让占满高度,placeholder 垂直居中,空状态有视觉重量 */
+.review-card {
+  display: flex;
+  flex-direction: column;
+}
+.review-card .placeholder {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px 24px 32px;
+  gap: 4px;
+}
+.empty-icon {
+  font-size: 28px;
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  background: rgba(107,122,90,0.12);
+  color: var(--accent);
+  display: grid;
+  place-items: center;
+  margin-bottom: 8px;
+}
+.pending-line { font-size: 16px; }
+.recent-card { display: flex; flex-direction: column; }
 .link { color: var(--accent); font-size: 12px; text-decoration: none; }
 .link:hover { text-decoration: underline; }
 
