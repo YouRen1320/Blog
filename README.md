@@ -2,7 +2,7 @@
 
 一个个人博客 vibe coding 项目。从空仓库开始,做完一整套**前后端 + 移动端 + AI 生成 + RAG 检索 + 生产部署**。
 
-**当前版本**:`v1.13.0` · **生产环境已上线**
+**当前版本**:`v1.20.0` · **生产环境已上线**
 
 ---
 
@@ -161,7 +161,13 @@ cd apps/mobile && flutter pub get && flutter run
 | v1.10.0 | AI 起标签 | InlineAction 加 'tags',流末 split 自动勾选 |
 | v1.11.0 | 用户管理 | /admin/users 列表 + 升降级 + 删除(自我保护) |
 | v1.12.0 | 编辑器拖图 | content textarea paste/drop 自动 /uploads 插 markdown |
-| **v1.13.0** | **全文搜索** | **ILIKE + 命中权重 + 关键词高亮 + footer 入口** |
+| v1.13.0 | 全文搜索 | ILIKE + 命中权重 + 关键词高亮 + footer 入口 |
+| v1.14.0~15 | admin 列表内搜 | /articles 顶部 search,本地 title/slug substring 过滤 |
+| v1.16.0 | 阅读体验 | writing/[slug] 顶部 3px scaleX 进度条 + 列表/详情 <720/480 响应式 |
+| v1.17.0 | 评论审核增强 | 批量通过/拒绝 + AI 评估按钮 + 列表 Gravatar |
+| v1.18.0 | 多用户作者列 | admin Articles ADMIN 视角加 AUTHOR 列(@username) |
+| v1.19.0 | 评论闭环 UX | AdminShell PENDING 暖红 badge + 公开列表 _count.comments + 首页 💬 N |
+| **v1.20.0** | **相关文章** | **GET /articles/:slug/related 同分类最新 3 篇 + 详情页底部 RELATED 卡片** |
 
 每个 tag 都有对应的 `docs/V?-REPORT.md` 完成报告 + `docs/journal/*.md` 决策与踩坑记录。
 
@@ -169,7 +175,7 @@ cd apps/mobile && flutter pub get && flutter run
 
 ## 文档
 
-- [`docs/00-roadmap.md`](docs/00-roadmap.md) —— 项目路线图(V1 → V1.3)
+- [`docs/00-roadmap.md`](docs/00-roadmap.md) —— 项目路线图(V1 → V1.20)
 - [`docs/V*-REPORT.md`](docs/) —— 各版本完成报告
 - [`docs/journal/`](docs/journal/) —— 每个任务的决策 + 踩坑日志
 - [`docs/decisions/`](docs/decisions/) —— ADR(架构决策)
