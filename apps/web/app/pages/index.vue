@@ -22,8 +22,10 @@
           :href="social.href"
           :aria-label="social.label"
           class="chip"
+          target="_blank"
+          rel="noopener noreferrer"
         >
-          <img :src="social.icon" :alt="social.label" class="chip-icon">
+          <span class="chip-text">{{ social.text }}</span>
         </a>
       </div>
     </div>
@@ -65,7 +67,7 @@
       <div class="mono kicker">MOBILE · ANDROID</div>
       <h3 class="cn apk-title">把博客装进口袋</h3>
       <p class="cn apk-desc">
-        Flutter 写的移动端,文章浏览 + 草稿提交 + 语音输入。直接装到 Android,iOS 待开发者签名后再放出。
+        随手翻开博客的安卓 App,在路上读文章、用语音记一段想说的话。iOS 版本还在路上。
       </p>
     </div>
     <div class="apk-actions">
@@ -74,8 +76,8 @@
         href="https://github.com/YouRen1320/Blog/releases/latest/download/app-release.apk"
         rel="external"
         download
-      >📱 下载 Android APK</a>
-      <span class="mono apk-note">latest release · 约 49 MB</span>
+      >📱 下载安卓 App</a>
+      <span class="mono apk-note">最新版本 · 约 49 MB</span>
     </div>
   </section>
 </template>
@@ -96,13 +98,6 @@ useSeoMeta({
   description: 'Youren 的博客主页:最新文章、笔记和 AI 内容生产实验。',
 })
 
-import atomIcon from '../assets/svg/atom.svg'
-import codebergIcon from '../assets/svg/codeberg.svg'
-import fediverseIcon from '../assets/svg/febiverse.svg'
-import forgejoIcon from '../assets/svg/forgejo.svg'
-import homeIcon from '../assets/svg/home.svg'
-import openPgpIcon from '../assets/svg/openPGP_Public_Key.svg'
-
 // hero 区的标签药丸；保持英文偏文学化的口吻，呼应 chlo.is 风格。
 const tags = [
   'Element Worker',
@@ -111,14 +106,13 @@ const tags = [
   'Resolute Tag Opponent',
 ]
 
-// 圆形 icon chips：站内/站外入口。
+// 圆形 chip:外部社交平台主页入口。
+// 用单字而非 SVG 图标 —— 视觉上更克制,且不依赖第三方 brand assets。
 const socials = [
-  { label: 'Home', href: '#', icon: homeIcon },
-  { label: 'Atom', href: '#', icon: atomIcon },
-  { label: 'Fediverse', href: '#', icon: fediverseIcon },
-  { label: 'Forgejo', href: '#', icon: forgejoIcon },
-  { label: 'Codeberg', href: '#', icon: codebergIcon },
-  { label: 'OpenPGP', href: '#', icon: openPgpIcon },
+  { label: 'Bilibili', href: 'https://space.bilibili.com/43729664', text: 'B' },
+  { label: '知乎', href: 'https://www.zhihu.com/people/qian-shang-60-73-8', text: '知' },
+  { label: '小红书', href: 'https://www.xiaohongshu.com/user/profile/628e49eb00000000150198d8', text: '红' },
+  { label: 'GitHub', href: 'https://github.com/YouRen1320', text: 'G' },
 ]
 
 // 首页只展示最新 6 篇,长列表去 /writing。
@@ -217,6 +211,14 @@ const postList = computed(() => {
   object-fit: contain;
   opacity: 0.85;
 }
+/* social chip 用单字代替 icon —— 衬线大写,在浅色 chip 里读起来像 logomark */
+.chip-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-2);
+  font-family: 'Crimson Pro', Georgia, serif;
+}
+.chip:hover .chip-text { color: var(--ink); }
 
 .portrait {
   position: relative;
@@ -263,6 +265,14 @@ const postList = computed(() => {
   grid-template-columns: repeat(3, 1fr);
   gap: 24px;
   scroll-margin-top: 80px;
+  align-items: stretch;
+}
+/* 让 NuxtLink 包装的 card 撑满 grid cell,从而每张卡片同高 */
+.card-link {
+  display: block;
+  height: 100%;
+  text-decoration: none;
+  color: inherit;
 }
 
 @media (max-width: 1000px) {

@@ -75,6 +75,8 @@ defineProps<{
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  /* height:100% 让父级 grid 的 align-items:stretch 把卡撑到等高 */
+  height: 100%;
 }
 
 .top {
@@ -125,7 +127,12 @@ defineProps<{
 .body {
   padding: 20px 18px 18px;
   border-top: 1px solid var(--rule);
+  /* flex:1 让 body 区域吸收剩余高度,保证 footer 始终贴底 */
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
+.body .summary { flex: 1; }
 
 .title {
   font-size: 17px;

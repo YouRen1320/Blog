@@ -7,8 +7,7 @@
   <footer class="app-footer mono">
     <div class="left">
       <span>© {{ year }} {{ settings.title }}</span>
-      <span>Powered by Nuxt</span>
-      <span>Theme — Hermeneutics</span>
+      <a v-if="settings.icp" href="https://beian.miit.gov.cn/" class="link" target="_blank" rel="noreferrer">{{ settings.icp }}</a>
     </div>
     <div class="right">
       <NuxtLink to="/search" class="link">🔍 搜索</NuxtLink>
@@ -23,10 +22,17 @@
         class="link"
         rel="external"
         download
-      >📱 Android APK</a>
-      <a href="#" class="link">IndieWebRing →</a>
-      <a href="#" class="link">开往</a>
-      <span v-if="settings.icp">{{ settings.icp }}</span>
+      >📱 安卓 App</a>
+      <!--
+        开往 (travellings) —— 中文独立博客随机跳转网络。
+        点 go.html 会随机跳到下一个加入开往的独立博客;无需注册即可作为流量入口。
+      -->
+      <a href="https://www.travellings.cn/go.html" class="link" target="_blank" rel="noreferrer">开往 →</a>
+      <!--
+        IndieWebRing 国际 webring,目前未注册到环里,链接先指官方介绍页;
+        若日后想加入,需要在 https://xn--sr8hvo.ws/ 注册站点后填环 ID。
+      -->
+      <a href="https://indieweb.org/Webring" class="link" target="_blank" rel="noreferrer">IndieWebRing →</a>
     </div>
   </footer>
 </template>
