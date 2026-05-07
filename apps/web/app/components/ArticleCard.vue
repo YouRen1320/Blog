@@ -127,12 +127,11 @@ defineProps<{
 .body {
   padding: 20px 18px 18px;
   border-top: 1px solid var(--rule);
-  /* flex:1 让 body 区域吸收剩余高度,保证 footer 始终贴底 */
+  /* flex:1 让 body 撑满剩余高度,配合下面 footer 的 margin-top:auto 把 footer 顶到底 */
   flex: 1;
   display: flex;
   flex-direction: column;
 }
-.body .summary { flex: 1; }
 
 .title {
   font-size: 17px;
@@ -146,6 +145,11 @@ defineProps<{
   font-size: 13px;
   color: var(--ink-2);
   margin: 8px 0 18px;
+  /* 摘要超过 4 行截断 + 末尾省略号,避免长摘要把卡片撑得过高、破坏网格等高 */
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .footer {
@@ -154,6 +158,8 @@ defineProps<{
   font-size: 11px;
   color: var(--ink-3);
   align-items: center;
+  /* summary 被 line-clamp 卡死后高度不会再涨,用 margin-top:auto 把 footer 推到底 */
+  margin-top: auto;
 }
 
 .spacer { flex: 1; }

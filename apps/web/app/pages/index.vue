@@ -16,15 +16,8 @@
       <p class="tagline">{{ settings.tagline }}</p>
 
       <div class="chips">
-        <a
-          v-for="social in socials"
-          :key="social.label"
-          :href="social.href"
-          :aria-label="social.label"
-          class="chip"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
+        <a v-for="social in socials" :key="social.label" :href="social.href" :aria-label="social.label" class="chip"
+          target="_blank" rel="noopener noreferrer">
           <img :src="social.icon" :alt="social.label" class="chip-icon">
         </a>
       </div>
@@ -43,12 +36,7 @@
 
   <!-- 下半:文章卡片网格(最多 6 张已发布,从 API 取) -->
   <section id="articles" class="grid-section">
-    <NuxtLink
-      v-for="item in postList"
-      :key="item.id"
-      :to="`/writing/${item.slug}`"
-      class="card-link"
-    >
+    <NuxtLink v-for="item in postList" :key="item.id" :to="`/writing/${item.slug}`" class="card-link">
       <ArticleCard :post="item.card" />
     </NuxtLink>
   </section>
@@ -71,12 +59,8 @@
       </p>
     </div>
     <div class="apk-actions">
-      <a
-        class="apk-btn"
-        href="https://github.com/YouRen1320/Blog/releases/latest/download/app-release.apk"
-        rel="external"
-        download
-      >📱 下载安卓 App</a>
+      <a class="apk-btn" href="https://github.com/YouRen1320/Blog/releases/latest/download/app-release.apk"
+        rel="external" download>下载安卓 App</a>
       <span class="mono apk-note">最新版本 · 约 49 MB</span>
     </div>
   </section>
@@ -91,7 +75,7 @@ import { useSiteSettings } from '../composables/useSiteSettings'
 
 // 站点 title / tagline 来自后台,改 admin /settings 后立即生效
 const { data: settings } = await useSiteSettings()
-import { frenchSeason, seedFromId, shortDate } from '../utils/format'
+import { frenchSeason, seedFromId, shortDate, stripMarkdown } from '../utils/format'
 
 useSeoMeta({
   title: 'YouRen · 写作 / 笔记 / AI 内容生产',
@@ -132,7 +116,9 @@ const postList = computed(() => {
       season: frenchSeason(a.publishedAt),
       title: a.title,
       author: 'Youren',
-      summary: a.summary ?? '',
+      // 摘要里偶尔混着 ##/> 等 markdown 残渣(AI 生成或编辑时直接拷正文),
+      // 卡片是纯文本展示场景,这里统一剥一遍,不依赖编辑端清理。
+      summary: stripMarkdown(a.summary),
       date: shortDate(a.publishedAt),
       // 列表里没有 content,先粗估"3 min read";详情页才有真正字数
       readingTime: '3 min read',
@@ -155,7 +141,11 @@ const postList = computed(() => {
   min-height: calc(100vh - 220px);
 }
 
-.intro { display: flex; flex-direction: column; gap: 0; }
+.intro {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
 
 .title {
   font-size: 40px;
@@ -165,7 +155,10 @@ const postList = computed(() => {
   color: var(--ink);
   line-height: 1.15;
 }
-.title .name { font-weight: 600; }
+
+.title .name {
+  font-weight: 600;
+}
 
 .tags {
   display: flex;
@@ -207,7 +200,10 @@ const postList = computed(() => {
   color: var(--ink-2);
   transition: transform 0.15s ease;
 }
-.chip:hover { transform: translateY(-2px); }
+
+.chip:hover {
+  transform: translateY(-2px);
+}
 
 .chip-icon {
   width: 18px;
@@ -215,7 +211,10 @@ const postList = computed(() => {
   object-fit: contain;
   opacity: 0.85;
 }
-.chip:hover .chip-icon { opacity: 1; }
+
+.chip:hover .chip-icon {
+  opacity: 1;
+}
 
 .portrait {
   position: relative;
@@ -233,7 +232,10 @@ const postList = computed(() => {
   filter: blur(6px);
   opacity: 0.85;
 }
-:global(.dark) .halo { opacity: 0.4; }
+
+:global(.dark) .halo {
+  opacity: 0.4;
+}
 
 .portrait-img {
   position: relative;
@@ -252,7 +254,10 @@ const postList = computed(() => {
   font-size: 18px;
   text-decoration: none;
 }
-.scroll-hint:hover { color: var(--ink); }
+
+.scroll-hint:hover {
+  color: var(--ink);
+}
 
 .grid-section {
   max-width: 1100px;
@@ -264,6 +269,7 @@ const postList = computed(() => {
   scroll-margin-top: 80px;
   align-items: stretch;
 }
+
 /* 让 NuxtLink 包装的 card 撑满 grid cell,从而每张卡片同高 */
 .card-link {
   display: block;
@@ -273,12 +279,26 @@ const postList = computed(() => {
 }
 
 @media (max-width: 1000px) {
-  .grid-section { grid-template-columns: repeat(2, 1fr); }
+  .grid-section {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
+
 @media (max-width: 640px) {
-  .profile { grid-template-columns: 1fr; padding-top: 40px; min-height: auto; }
-  .portrait { width: 220px; height: 220px; }
-  .grid-section { grid-template-columns: 1fr; }
+  .profile {
+    grid-template-columns: 1fr;
+    padding-top: 40px;
+    min-height: auto;
+  }
+
+  .portrait {
+    width: 220px;
+    height: 220px;
+  }
+
+  .grid-section {
+    grid-template-columns: 1fr;
+  }
 }
 
 .more-row {
@@ -300,7 +320,10 @@ const postList = computed(() => {
   cursor: pointer;
   transition: color 0.15s ease;
 }
-.more-btn:hover { color: var(--ink); }
+
+.more-btn:hover {
+  color: var(--ink);
+}
 
 /* Android APK 下载卡:hero 之外、文章列表之后,左右两栏 */
 .apk-card {
@@ -315,8 +338,12 @@ const postList = computed(() => {
   align-items: center;
   gap: 24px;
 }
+
 @media (max-width: 720px) {
-  .apk-card { grid-template-columns: 1fr; padding: 22px 24px; }
+  .apk-card {
+    grid-template-columns: 1fr;
+    padding: 22px 24px;
+  }
 }
 
 .apk-meta .kicker {
@@ -325,12 +352,14 @@ const postList = computed(() => {
   color: var(--ink-3);
   margin-bottom: 8px;
 }
+
 .apk-title {
   font-size: 22px;
   font-weight: 600;
   margin: 0 0 6px;
   color: var(--ink);
 }
+
 .apk-desc {
   font-size: 13px;
   line-height: 1.7;
@@ -344,6 +373,7 @@ const postList = computed(() => {
   align-items: flex-end;
   gap: 6px;
 }
+
 .apk-btn {
   display: inline-flex;
   align-items: center;
@@ -357,7 +387,11 @@ const postList = computed(() => {
   text-decoration: none;
   transition: opacity 0.15s ease;
 }
-.apk-btn:hover { opacity: 0.92; }
+
+.apk-btn:hover {
+  opacity: 0.92;
+}
+
 .apk-note {
   font-size: 10px;
   color: var(--ink-3);

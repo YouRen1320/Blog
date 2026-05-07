@@ -10,7 +10,7 @@
       <a v-if="settings.icp" href="https://beian.miit.gov.cn/" class="link" target="_blank" rel="noreferrer">{{ settings.icp }}</a>
     </div>
     <div class="right">
-      <NuxtLink to="/search" class="link">🔍 搜索</NuxtLink>
+      <NuxtLink to="/search" class="link">搜索</NuxtLink>
       <!--
         APK 直链走 GitHub release latest:
         - URL 永远指向最新 v* tag 的 app-release.apk(GitHub 自动 redirect)
@@ -22,7 +22,7 @@
         class="link"
         rel="external"
         download
-      >📱 安卓 App</a>
+      >安卓 App</a>
       <!--
         开往 (travellings) —— 中文独立博客随机跳转网络。
         点 go.html 会随机跳到下一个加入开往的独立博客;无需注册即可作为流量入口。

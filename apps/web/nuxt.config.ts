@@ -29,6 +29,10 @@ export default defineNuxtConfig({
         { name: "viewport", content: "width=device-width, initial-scale=1" },
         { name: "description", content: "Youren 的写作:博客、笔记、AI 内容生产实验。" },
       ],
+      // 站点 favicon:用 Y.svg 覆盖 Nuxt 默认的 favicon.ico(.ico 留作老浏览器 fallback)
+      link: [
+        { rel: "icon", type: "image/svg+xml", href: "/Y.svg" },
+      ],
     },
   },
 });
