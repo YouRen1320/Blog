@@ -20,7 +20,9 @@ RUN apk add --no-cache openssl
 COPY --from=builder /deploy/node_modules ./node_modules
 COPY --from=builder /deploy/dist ./dist
 COPY --from=builder /repo/apps/api/prisma ./prisma
-RUN addgroup -g 1001 nodejs && adduser -u 1001 -G nodejs -D nodejs && chown -R nodejs:nodejs /app
+RUN addgroup -g 1001 nodejs && adduser -u 1001 -G nodejs -D nodejs \
+ && mkdir -p /app/uploads \
+ && chown -R nodejs:nodejs /app
 USER nodejs
 EXPOSE 3000
 CMD ["sh", "-c", "node node_modules/prisma/build/index.js migrate deploy && node dist/main.js"]
