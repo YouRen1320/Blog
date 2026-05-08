@@ -4,6 +4,7 @@ import {
   Post,
   Res,
   UploadedFile,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -11,26 +12,21 @@ import type { Response as ExpressResponse } from 'express';
 import { Throttle } from '@nestjs/throttler';
 import { AiService } from './ai.service';
 import { CreateAiDraftDto } from './dto/create-draft.dto';
-import { Roles } from '../../common/decorators/roles.decorator';
+import { AiDailyQuotaGuard } from '../../common/guards/ai-daily-quota.guard';
 import {
   CurrentUser,
   type AuthUser,
 } from '../../common/decorators/current-user.decorator';
 
+/**
+ * V1.x:AI 接口对所有登录用户开放(原来 ADMIN-only)。
+ * - ADMIN 不限次数,只受 ai 档 10/min 限流约束
+ * - USER(测试者)受 AiDailyQuotaGuard 控制,每日 3 次跨入口共享
+ */
 @Controller('admin/ai')
-@Roles('ADMIN')
+@UseGuards(AiDailyQuotaGuard)
 export class AiController {
   constructor(private readonly ai: AiService) {}
-
-  /**
-   * 非流式生成 —— 一次拿完整草稿落库。
-   * ai 档:10 req/min,防 quota 一夜烧光。
-   */
-  @Throttle({ ai: { limit: 10, ttl: 60_000 } })
-  @Post('drafts')
-  generateDraft(@CurrentUser() user: AuthUser, @Body() dto: CreateAiDraftDto) {
-    return this.ai.createDraft(user.id, dto);
-  }
 
   /**
    * 流式生成 —— SSE 边写边推到前端,流末自动落库。
@@ -54,7 +50,7 @@ export class AiController {
    * 编辑器内联 AI(续写 / 改写 / 扩写 / 摘要 / 起标题)。
    * body 不走 NestJS DTO 校验,直接透传给 ai-service —— InlineRequest schema 在 Python 端校验。
    * 这种"中间人 SSE"用 @Body() 接 unknown + @Res() 自己写流即可。
-   * ai 档限流 10/min,跟非流式生成共享 quota。
+   * ai 档限流 10/min,跟流式生成共享 quota。
    */
   @Throttle({ ai: { limit: 10, ttl: 60_000 } })
   @Post('inline')

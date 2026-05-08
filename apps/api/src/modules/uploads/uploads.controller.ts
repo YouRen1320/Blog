@@ -9,7 +9,6 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname, join } from 'node:path';
 import { randomBytes } from 'node:crypto';
-import { Roles } from '../../common/decorators/roles.decorator';
 
 const UPLOAD_ROOT = process.env.UPLOAD_ROOT ?? join(process.cwd(), 'uploads');
 
@@ -32,11 +31,12 @@ const MAX_SIZE = 8 * 1024 * 1024; // 8MB
  * - 存储:本地磁盘 `UPLOAD_ROOT`(默认 `/app/uploads`,docker 挂 volume 持久化)
  * - 返回:`{ url: "/uploads/<hash>.ext", filename, size, mimetype }`
  *
+ * 权限:任何登录用户(USER / ADMIN)都能传——测试者写文章配封面/插图都要走这个。
+ *
  * 公开访问:Caddy `www.iyouren.top/uploads/*` 反代到 api,
  * NestJS app.module 用 `ServeStaticModule` 暴露 `UPLOAD_ROOT` 到 `/uploads`。
  */
 @Controller('admin/uploads')
-@Roles('ADMIN')
 export class UploadsController {
   @Post()
   @UseInterceptors(

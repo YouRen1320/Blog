@@ -7,6 +7,7 @@ COPY apps/api/prisma apps/api/prisma
 RUN pnpm install --filter api --frozen-lockfile
 COPY apps/api/tsconfig.json apps/api/tsconfig.build.json apps/api/nest-cli.json apps/api/
 COPY apps/api/src apps/api/src
+COPY apps/api/scripts apps/api/scripts
 RUN cd apps/api && pnpm exec prisma generate
 RUN cd apps/api && pnpm exec nest build
 RUN pnpm --filter api --prod deploy --legacy /deploy
@@ -20,6 +21,8 @@ RUN apk add --no-cache openssl
 COPY --from=builder /deploy/node_modules ./node_modules
 COPY --from=builder /deploy/dist ./dist
 COPY --from=builder /repo/apps/api/prisma ./prisma
+# 运维脚本(seed-tester 等),纯 CJS 直接 `node scripts/x.cjs` 跑
+COPY --from=builder /repo/apps/api/scripts ./scripts
 RUN addgroup -g 1001 nodejs && adduser -u 1001 -G nodejs -D nodejs \
  && mkdir -p /app/uploads \
  && chown -R nodejs:nodejs /app

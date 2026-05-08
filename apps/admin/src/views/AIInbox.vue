@@ -17,34 +17,30 @@
           </div>
         </div>
 
-        <form class="generate-form" @submit.prevent="onGenerate">
+        <!--
+          表单只保留流式生成:非流式入口的同步等待容易撞 90s 超时,体验差。
+          流式 SSE 边写边推,既快又能让用户看到进度。
+        -->
+        <form class="generate-form" @submit.prevent="onStreamGenerate">
           <input
             v-model="prompt"
             class="input prompt"
             placeholder="让 AI 起草:写一篇 ___ 的文章 …"
-            :disabled="generating"
+            :disabled="streaming"
           />
-          <select v-model="tone" class="input" :disabled="generating">
+          <select v-model="tone" class="input" :disabled="streaming">
             <option value="technical">技术 · 严谨</option>
             <option value="casual">随笔 · 轻盈</option>
             <option value="poetic">诗意 · 抒情</option>
             <option value="narrative">记叙 · 故事</option>
           </select>
-          <select v-model="length" class="input" :disabled="generating">
+          <select v-model="length" class="input" :disabled="streaming">
             <option value="short">短</option>
             <option value="medium">中</option>
             <option value="long">长</option>
           </select>
-          <button class="primary" type="submit" :disabled="generating || !prompt.trim()">
-            {{ generating ? '生成中…' : '✦ 生成草稿' }}
-          </button>
-          <button
-            class="ghost"
-            type="button"
-            :disabled="generating || !prompt.trim()"
-            @click="onStreamGenerate"
-          >
-            {{ streaming ? '流式中…' : '✦ 流式生成' }}
+          <button class="primary" type="submit" :disabled="streaming || !prompt.trim()">
+            {{ streaming ? '生成中…' : '✦ 生成草稿' }}
           </button>
         </form>
         <p v-if="error" class="error mono">{{ error }}</p>
@@ -109,7 +105,7 @@ import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import AdminShell from '../components/AdminShell.vue'
 import { listArticles, type ArticleSummary } from '../api/articles'
-import { generateAiDraft, streamAiDraft } from '../api/ai'
+import { streamAiDraft } from '../api/ai'
 import { extractErrorMessage } from '../composables/useApiError'
 
 const drafts = ref<ArticleSummary[]>([])
@@ -120,9 +116,8 @@ const activeId = ref<string | null>(null)
 const prompt = ref('')
 const tone = ref<'technical' | 'casual' | 'poetic' | 'narrative'>('technical')
 const length = ref<'short' | 'medium' | 'long'>('medium')
-const generating = ref(false)
 
-// 流式生成专用 state
+// 流式生成状态
 const streaming = ref(false)
 const streamBuffer = ref('')
 const streamSavedId = ref<string | null>(null)
@@ -146,31 +141,12 @@ async function load() {
   }
 }
 
-async function onGenerate() {
-  generating.value = true
-  error.value = ''
-  try {
-    const created = await generateAiDraft({
-      prompt: prompt.value.trim(),
-      tone: tone.value,
-      length: length.value,
-    })
-    prompt.value = ''
-    await load()
-    activeId.value = created.id // 高亮刚生成的
-  } catch (e) {
-    error.value = extractErrorMessage(e, '生成失败,确认 ai-service 已启动')
-  } finally {
-    generating.value = false
-  }
-}
-
 /**
  * 流式生成:走 SSE 端点,边收 chunk 边拼到 streamBuffer。
  * 收到 saved 事件后自动刷新草稿列表 + 提供"进入编辑器"快捷入口。
  */
 async function onStreamGenerate() {
-  if (streaming.value || generating.value) return
+  if (streaming.value) return
   streaming.value = true
   error.value = ''
   streamBuffer.value = ''

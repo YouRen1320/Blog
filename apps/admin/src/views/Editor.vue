@@ -91,8 +91,10 @@
         <p v-if="error" class="error">{{ error }}</p>
         <div class="actions">
           <button class="primary" type="button" :disabled="saving || ai.running" @click="onSave">{{ saving ? '保存中…' : '保存' }}</button>
-          <button v-if="post.status !== 'PUBLISHED'" class="ghost" type="button" :disabled="saving || ai.running" @click="onPublish">发布</button>
-          <button v-else class="ghost" type="button" :disabled="saving || ai.running" @click="onUnpublish">下线</button>
+          <template v-if="isAdmin">
+            <button v-if="post.status !== 'PUBLISHED'" class="ghost" type="button" :disabled="saving || ai.running" @click="onPublish">发布</button>
+            <button v-else class="ghost" type="button" :disabled="saving || ai.running" @click="onUnpublish">下线</button>
+          </template>
           <button v-if="props.id" class="ghost danger" type="button" :disabled="ai.running" @click="onDelete">删除</button>
         </div>
 
@@ -138,7 +140,13 @@ import { listTags, type Tag } from '../api/tags'
 import { streamInlineAi, type InlineAction } from '../api/ai'
 import { uploadImage } from '../api/uploads'
 import { extractErrorMessage } from '../composables/useApiError'
+import { useAuthStore } from '../stores/auth'
 import MarkdownIt from 'markdown-it'
+
+// 测试者(role=USER)只保存草稿,不能发布/下线;按钮整组隐掉,
+// 后端 publish/unpublish 也加了 @Roles('ADMIN') 兜底。
+const auth = useAuthStore()
+const isAdmin = computed(() => auth.user?.role === 'ADMIN')
 
 // markdown-it 配置同 web /writing/[slug]:不开 html(防 XSS)+ linkify
 const md = new MarkdownIt({ html: false, linkify: true, breaks: false })

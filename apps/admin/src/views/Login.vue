@@ -4,6 +4,8 @@
     - 调 useAuthStore().login(email, password) 拿 token 并存 store
     - 出错时显示后端返回的 message(401 邮箱密码错 / 400 字段不合法)
     - 成功后跳转到 ?redirect 指定的页面或默认 /dashboard
+    - email/password 默认预填**测试账号**(role=USER,只能写不能发,AI 限 3 次/天),
+      ADMIN 自己手动清空再输即可。测试账号的密码就是公开的,因此明文写在前端没问题。
   -->
   <div class="page">
     <form class="card" @submit.prevent="onSubmit">
@@ -33,6 +35,9 @@
         required
       />
 
+      <p class="demo-hint">
+        当前预填为<strong>测试账号</strong>(只能写草稿、AI 每日 3 次),直接点登入即可体验。
+      </p>
       <p v-if="error" class="error">{{ error }}</p>
 
       <button class="submit" :disabled="submitting" type="submit">
@@ -57,8 +62,13 @@ const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
 
-const email = ref('')
-const password = ref('')
+// 测试账号默认值,跟 apps/api/scripts/seed-tester.cjs 的默认值保持同步。
+// 这是公开的 demo 账号,密码不当 secret 处理。
+const DEMO_EMAIL = 'tester@iyouren.top'
+const DEMO_PASSWORD = 'tester12345'
+
+const email = ref(DEMO_EMAIL)
+const password = ref(DEMO_PASSWORD)
 const error = ref('')
 const submitting = ref(false)
 
@@ -69,7 +79,10 @@ async function onSubmit() {
   submitting.value = true
   try {
     await auth.login(email.value, password.value)
-    const redirect = (route.query.redirect as string) || '/dashboard'
+    // USER(测试者)的 dashboard / settings 等都被隐藏掉了,
+    // 默认跳到 /articles 让他直接看到自己的文章列表。ADMIN 仍走 /dashboard。
+    const fallback = auth.user?.role === 'ADMIN' ? '/dashboard' : '/articles'
+    const redirect = (route.query.redirect as string) || fallback
     router.replace(redirect)
   } catch (e: any) {
     // 后端 message 可能是字符串或字符串数组(class-validator 返回数组)
@@ -145,6 +158,18 @@ async function onSubmit() {
 
 .input + .label { margin-top: 0; }
 .input:last-of-type { margin-bottom: 16px; }
+
+.demo-hint {
+  font-size: 11px;
+  color: var(--ink-3);
+  background: var(--bg);
+  border: 1px dashed var(--rule);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin: 0 0 14px;
+  line-height: 1.5;
+}
+.demo-hint strong { color: var(--ink-2); font-weight: 600; }
 
 .error {
   font-size: 12px;

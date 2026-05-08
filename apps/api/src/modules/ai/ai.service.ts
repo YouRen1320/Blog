@@ -87,14 +87,6 @@ export class AiService {
   }
 
   /**
-   * 非流式入口:同步调 ai-service,拿到完整草稿后落库。
-   */
-  async createDraft(authorId: string, dto: CreateAiDraftDto) {
-    const draft = await this.callAiService(dto);
-    return this.persistDraft(authorId, draft);
-  }
-
-  /**
    * 流式入口:把 ai-service SSE 边转发给前端,边在内存累积 draft event,
    * stream 结束后落库,最后再发一个 `event: saved` 带 articleId 的事件。
    */
@@ -271,50 +263,4 @@ export class AiService {
     }
   }
 
-  /**
-   * HTTP 调 Python 服务。
-   * - 用 Node 18+ 自带 fetch + AbortController 防止 LLM 慢导致请求挂死
-   * - 90s 上限(LLM 长内容生成 30-60s 常见,留余量)
-   * - 出错时抛 503,前端拿到清晰 message
-   */
-  private async callAiService(dto: CreateAiDraftDto): Promise<AiServiceDraft> {
-    const baseUrl =
-      this.config.get<string>('AI_SERVICE_BASE_URL') ?? 'http://127.0.0.1:8001';
-    this.logger.log(
-      `calling ai-service ${baseUrl}/generate/article (prompt=${dto.prompt.slice(0, 40)}…)`,
-    );
-
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 90_000);
-
-    let res: Response;
-    try {
-      res = await fetch(`${baseUrl}/generate/article`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        signal: controller.signal,
-        body: JSON.stringify({
-          prompt: dto.prompt,
-          tone: dto.tone ?? 'technical',
-          length: dto.length ?? 'medium',
-        }),
-      });
-    } catch (err) {
-      const e = err as Error;
-      if (e.name === 'AbortError') {
-        this.logger.error('ai-service timeout after 90s');
-        throw new ServiceUnavailableException('AI 生成超时(>90s),请稍后再试');
-      }
-      this.logger.error('ai-service unreachable', e);
-      throw new ServiceUnavailableException('AI 服务不可用,请稍后再试');
-    } finally {
-      clearTimeout(timer);
-    }
-    if (!res.ok) {
-      const body = await res.text();
-      this.logger.error(`ai-service ${res.status}: ${body.slice(0, 200)}`);
-      throw new ServiceUnavailableException(`AI 服务返回 ${res.status}`);
-    }
-    return (await res.json()) as AiServiceDraft;
-  }
 }

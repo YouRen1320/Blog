@@ -31,8 +31,8 @@
 
       <div class="user">
         <div>
-          <div class="user-name">Youren</div>
-          <div class="mono user-role">admin</div>
+          <div class="user-name">{{ auth.user?.username ?? '—' }}</div>
+          <div class="mono user-role">{{ (auth.user?.role ?? '').toLowerCase() || '—' }}</div>
         </div>
         <button class="theme-toggle" @click="toggle" :aria-label="dark ? '切到浅色' : '切到深色'">
           {{ dark ? '☼' : '☾' }}
@@ -74,18 +74,22 @@ type NavItem = {
 // V1.19:Comments badge 从 stats overview 取 pending 数,>0 才显示提醒 ADMIN 去审核
 const pendingComments = ref(0)
 
+// adminOnly:USER(测试者)只能写文章 + 看自己的 AI 草稿,
+// 全局资源(分类/标签/评论审核/用户管理/站点设置/统计)对 USER 隐藏。
+// dashboard 里的 stats 接口也是 ADMIN-only,但首页本身允许进(若以后给 USER
+// 做空白态再细化);此版先把菜单藏掉就够。
 const items = computed<NavItem[]>(() => [
-  { key: 'dashboard', icon: '○', label: 'Index', to: '/dashboard' },
+  { key: 'dashboard', icon: '○', label: 'Index', to: '/dashboard', adminOnly: true },
   { key: 'writing', icon: '✎', label: 'Writing', to: '/articles' },
   { key: 'drafts', icon: '✦', label: 'AI Drafts', to: '/inbox' },
-  { key: 'tags', icon: '#', label: 'Tags', to: '/tags' },
-  { key: 'cats', icon: '◐', label: 'Categories', to: '/categories' },
+  { key: 'tags', icon: '#', label: 'Tags', to: '/tags', adminOnly: true },
+  { key: 'cats', icon: '◐', label: 'Categories', to: '/categories', adminOnly: true },
   {
     key: 'comments', icon: '✉', label: 'Comments', to: '/comments', adminOnly: true,
     badge: pendingComments.value > 0 ? String(pendingComments.value) : undefined,
   },
   { key: 'users', icon: '◍', label: 'Users', to: '/users', adminOnly: true },
-  { key: 'settings', icon: '⚙', label: 'Settings', to: '/settings' },
+  { key: 'settings', icon: '⚙', label: 'Settings', to: '/settings', adminOnly: true },
 ])
 
 // USER role 看不到 adminOnly 项(comments / users)

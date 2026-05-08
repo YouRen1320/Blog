@@ -22,9 +22,11 @@ import {
 /**
  * V1.6 起 admin/articles 不再限定 ADMIN —— 任何登录 USER 都能 CRUD 自己的文章。
  * - listAdmin / findByIdScoped 在 service 层按 user.role 过滤(USER 只看自己)
- * - update / delete / publish / unpublish 走 assertOwnership(USER 只能动自己;ADMIN 全权)
+ * - update / delete 走 assertOwnership(USER 只能动自己;ADMIN 全权)
  *
  * backfillEmbeddings 是全局批量任务,继续 ADMIN-only。
+ * publish / unpublish 自 V1.x 起也限 ADMIN —— 测试者(USER)只能保存草稿,
+ * 上下线由 ADMIN 决定,防止外部 USER 直接发文到公开站。
  */
 @Controller('admin/articles')
 export class ArticlesController {
@@ -69,11 +71,13 @@ export class ArticlesController {
     return this.service.remove(id, user);
   }
 
+  @Roles('ADMIN')
   @Patch(':id/publish')
   publish(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.service.publish(id, user);
   }
 
+  @Roles('ADMIN')
   @Patch(':id/unpublish')
   unpublish(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.service.unpublish(id, user);
