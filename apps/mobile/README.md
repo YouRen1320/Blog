@@ -6,17 +6,16 @@ Flutter 3.35 + Riverpod + go_router + dio。轻量内容入口,主要做"语音/
 
 ---
 
-## 默认登录账号(连生产或本地)
+## 登录账号
 
-```
-邮箱:admin@iyouren.top
-密码:admin12345
-```
+项目不提供默认管理员凭据。连接生产环境时使用维护者通过一次性管理员命令创建的
+账号；本地开发可运行非生产 demo seed，使用 `.env` 中的 `E2E_ADMIN_*` 配置。
 
-API 地址通过 `apps/mobile/.env` 配置,**默认值是 Android 模拟器风格**:
+API 地址通过 `apps/mobile/.env` 配置。先复制 `apps/mobile/.env.example`，其示例值
+适用于 Android 模拟器：
 
 ```env
-# .env 现值(本地 Android 模拟器访问宿主机 NestJS)
+# Android 模拟器访问宿主机 NestJS
 API_BASE_URL=http://10.0.2.2:3000
 ```
 
@@ -145,7 +144,7 @@ flutter build apk --release
 
 ```
 □ flutter pub get && flutter run -d <device>
-□ 登录页:输入 admin@iyouren.top + 密码 → 进入主界面
+□ 登录页:输入当前环境的管理员账号 → 进入主界面
 □ 草稿列表:看到 [MOCK] 草稿那条 + 第一灯 published
 □ 点开第一灯 → 详情页正文 + 元信息正确显示
 □ 新建草稿:输入 prompt → 提交 → ai-service 生成(15-30s)→ 草稿落库

@@ -42,7 +42,7 @@ $ curl -s https://www.iyouren.top/api/articles | head -c 200
 
 $ curl -X POST https://www.iyouren.top/api/auth/login \
     -H "Content-Type: application/json" \
-    -d '{"email":"admin@iyouren.top","password":"admin12345"}'
+    -d '{"email":"admin@example.com","password":"replace-with-your-admin-password"}'
 → accessToken + user.role=ADMIN
 
 $ docker compose ps
@@ -106,7 +106,7 @@ XIAOMI_MIMO_BASE_URL=<在小米 MiMo 控制台确认真实 endpoint>
 ## 现在你可以做什么
 
 - 浏览 https://www.iyouren.top → 看到"你好,博客 · 上线了"
-- 后台:登录 admin@iyouren.top / admin12345 → 写文章 → 发布 → 网站秒级出现
+- 后台:登录 admin@example.com / replace-with-your-admin-password → 写文章 → 发布 → 网站秒级出现
 - 移动端:手机上 build APK,API base 改成 https://www.iyouren.top/api
 - AI 草稿:V4 流程已通,等你切真 LLM 后用 prompt 生成
 

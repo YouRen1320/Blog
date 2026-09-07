@@ -34,7 +34,10 @@ export function installAuthInterceptor(getToken: () => string | null, onUnauthor
   apiClient.interceptors.response.use(
     (res) => res,
     (err) => {
-      if (err?.response?.status === 401) {
+      // 改密接口的 401 表示“当前密码错误”，应留在设置页展示，而不是清空有效会话。
+      const requestPath = String(err?.config?.url ?? '').split('?')[0]
+      const isPasswordVerification = requestPath.endsWith('/auth/password')
+      if (err?.response?.status === 401 && !isPasswordVerification) {
         onUnauthorized()
       }
       return Promise.reject(err)

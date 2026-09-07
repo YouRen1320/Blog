@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { E2E_ADMIN } from './support/admin'
 
 /**
  * 改密码 e2e —— 故意只测**错误路径**,不真改 admin 密码:
@@ -12,13 +13,11 @@ import { test, expect } from '@playwright/test'
  */
 
 const ADMIN_URL = 'http://localhost:5174'
-const ADMIN_EMAIL = 'admin@iyouren.top'
-const ADMIN_PASSWORD = 'admin12345'
 
 test.beforeEach(async ({ page }) => {
   await page.goto(`${ADMIN_URL}/login`)
-  await page.fill('input[type=email]', ADMIN_EMAIL)
-  await page.fill('input[type=password]', ADMIN_PASSWORD)
+  await page.fill('input[type=email]', E2E_ADMIN.email)
+  await page.fill('input[type=password]', E2E_ADMIN.password)
   await page.click('button[type=submit]')
   await page.waitForURL(`${ADMIN_URL}/dashboard`, { timeout: 10_000 })
   await page.goto(`${ADMIN_URL}/settings`)
@@ -39,10 +38,10 @@ test('当前密码错 → 401 友好提示', async ({ page }) => {
 
 test('新旧密码相同 → 客户端校验拦下', async ({ page }) => {
   const section = page.locator('section.card.group', { hasText: 'AUTH · 改密码' })
-  await section.locator('input[autocomplete=current-password]').fill(ADMIN_PASSWORD)
+  await section.locator('input[autocomplete=current-password]').fill(E2E_ADMIN.password)
   const newPwds = section.locator('input[autocomplete=new-password]')
-  await newPwds.first().fill(ADMIN_PASSWORD)
-  await newPwds.last().fill(ADMIN_PASSWORD)
+  await newPwds.first().fill(E2E_ADMIN.password)
+  await newPwds.last().fill(E2E_ADMIN.password)
   await section.locator('button:has-text("修改密码")').click()
 
   await expect(section.locator('text=新密码不能与当前密码相同')).toBeVisible({ timeout: 5_000 })
@@ -50,11 +49,11 @@ test('新旧密码相同 → 客户端校验拦下', async ({ page }) => {
 
 test('新密码不到 8 位 → 客户端拦下', async ({ page }) => {
   const section = page.locator('section.card.group', { hasText: 'AUTH · 改密码' })
-  await section.locator('input[autocomplete=current-password]').fill(ADMIN_PASSWORD)
+  await section.locator('input[autocomplete=current-password]').fill(E2E_ADMIN.password)
   const newPwds = section.locator('input[autocomplete=new-password]')
   await newPwds.first().fill('short')
   await newPwds.last().fill('short')
   await section.locator('button:has-text("修改密码")').click()
 
-  await expect(section.locator('text=新密码至少 8 位')).toBeVisible({ timeout: 5_000 })
+  await expect(section.locator('.pwd-msg.error', { hasText: '新密码至少 8 位' })).toBeVisible({ timeout: 5_000 })
 })

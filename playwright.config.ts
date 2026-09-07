@@ -5,7 +5,7 @@ import { defineConfig, devices } from '@playwright/test'
  *
  * 跑前提条件:
  * 1. Postgres 容器已 up:`pnpm db:up`
- * 2. 数据库 seed 过(只有这样才有 admin@iyouren.top 账号):`pnpm --filter api db:seed`
+ * 2. 非生产数据库已运行 demo seed：`pnpm --filter api seed:demo`
  * 3. 三个服务已起:
  *    - API:    `pnpm --filter api start:prod` (3000)
  *    - Admin:  `pnpm --filter admin dev`      (5174)

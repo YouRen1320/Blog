@@ -49,9 +49,9 @@ export async function resetDb(prisma: PrismaService) {
  * 标准 admin 账号 + 拿到 token 的 helper。
  */
 export const TEST_ADMIN = {
-  email: 'e2e-admin@iyouren.top',
+  email: 'e2e-admin@example.test',
   username: 'e2e-admin',
-  password: 'admin12345',
+  password: 'e2e-admin-password',
 };
 
 export async function ensureAdmin(prisma: PrismaService) {

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { E2E_ADMIN } from './support/admin'
 
 /**
  * 评论审核全流程 e2e。
@@ -13,8 +14,6 @@ import { test, expect } from '@playwright/test'
 
 const ADMIN_URL = 'http://localhost:5174'
 const WEB_URL = 'http://localhost:3100'
-const ADMIN_EMAIL = 'admin@iyouren.top'
-const ADMIN_PASSWORD = 'admin12345'
 
 const stamp = Date.now()
 const COMMENT_AUTHOR = `E2E Bot ${stamp}`
@@ -37,8 +36,8 @@ test('评论 → 审核 → 公开可见', async ({ page }) => {
 
   // ── 2. 切到 admin 登录 ─────────────────────────────
   await page.goto(`${ADMIN_URL}/login`)
-  await page.fill('input[type=email]', ADMIN_EMAIL)
-  await page.fill('input[type=password]', ADMIN_PASSWORD)
+  await page.fill('input[type=email]', E2E_ADMIN.email)
+  await page.fill('input[type=password]', E2E_ADMIN.password)
   await page.click('button[type=submit]')
   await page.waitForURL(`${ADMIN_URL}/dashboard`, { timeout: 10_000 })
 

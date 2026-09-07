@@ -20,15 +20,17 @@
 | RSS feed | <https://www.iyouren.top/feed.xml> | 订阅源 |
 | Android APK | <https://github.com/YouRen1320/Blog/releases/latest/download/app-release.apk> | latest tag 自动出包 |
 
-### 默认管理员账号
+### 管理员初始化
 
-```
-邮箱:admin@iyouren.top
-密码:admin12345
+项目不提供默认管理员凭据。复制 `.env.example` 为未跟踪的 `.env`，显式设置
+`ADMIN_EMAIL`、`ADMIN_USERNAME` 和 `ADMIN_PASSWORD`，完成迁移后运行：
+
+```bash
+pnpm --filter api admin:create
 ```
 
-> 第一次登录建议立刻去 **/settings → AUTH · 改密码** 改一个新密码。
-> 数据库种子在 V1 阶段创建了这个账号,部署后没改过。
+密码至少 12 个字符且不超过 bcrypt 的 72 字节限制。命令只负责首次创建；如果
+邮箱已属于管理员，它不会修改密码；如果邮箱属于普通用户，它会安全失败。
 
 ---
 
@@ -94,7 +96,8 @@ cd apps/ai-service && python3.12 -m venv .venv && source .venv/bin/activate && p
 # 2. 起本地 Postgres(已含 pgvector 扩展)
 docker compose up -d
 pnpm db:logs           # 看启动日志,等 ready
-cd apps/api && pnpm prisma migrate deploy && pnpm prisma db seed
+pnpm --filter api db:migrate:deploy
+pnpm --filter api seed:demo
 
 # 3. 起所有服务(各开一个终端)
 pnpm dev:api           # NestJS    :3000
@@ -106,7 +109,9 @@ cd apps/ai-service && uvicorn main:app --host 0.0.0.0 --port 8001 --reload
 cd apps/mobile && flutter pub get && flutter run
 ```
 
-本地登录用上面的默认账号。AI 生成默认走 `USE_MOCK_LLM=true` 不烧 quota,要真生成把 `apps/ai-service/.env` 里换成 `false` + 配 MiMo key。
+本地 demo seed 使用 `.env.example` 中独立的 `example.test` E2E 账号。它在
+`NODE_ENV=production` 时会在连接数据库前拒绝执行。AI 生成默认走
+`USE_MOCK_LLM=true`，要调用真实模型再显式配置 provider key。
 
 ---
 
