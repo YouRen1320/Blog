@@ -55,5 +55,5 @@ test('新密码不到 8 位 → 客户端拦下', async ({ page }) => {
   await newPwds.last().fill('short')
   await section.locator('button:has-text("修改密码")').click()
 
-  await expect(section.locator('text=新密码至少 8 位')).toBeVisible({ timeout: 5_000 })
+  await expect(section.locator('.pwd-msg.error', { hasText: '新密码至少 8 位' })).toBeVisible({ timeout: 5_000 })
 })

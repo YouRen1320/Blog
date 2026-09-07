@@ -32,7 +32,7 @@ test('完整发布主链路', async ({ page }) => {
   await page.click('button[type=submit]')
 
   await page.waitForURL(`${ADMIN_URL}/dashboard`, { timeout: 10_000 })
-  await expect(page.locator('text=已发布')).toBeVisible()
+  await expect(page.getByText('PUBLISHED', { exact: true }).first()).toBeVisible()
 
   // ── 2. 进入新建编辑器 ─────────────────────────────────
   await page.goto(`${ADMIN_URL}/editor`)
