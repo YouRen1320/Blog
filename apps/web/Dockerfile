@@ -7,8 +7,8 @@
 # `.output` 目录,绕过 oxide。
 #
 # 部署流程:
-#   本地: cd apps/web && pnpm build         # 生成 apps/web/.output
-#   服务器: tar `.output` 同步过去, 然后 docker compose build web
+#   CI:构建 `.output`，按 commit SHA 打包并保存校验和
+#   服务器:校验并解压同一 commit 的产物，再执行 docker compose build web
 
 FROM node:22-alpine
 WORKDIR /app
