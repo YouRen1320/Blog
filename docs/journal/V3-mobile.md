@@ -170,7 +170,7 @@ No issues found!
 
 # 实机测试由用户执行(我无法启动模拟器):
 # 1. cd apps/mobile && flutter run -d <device>
-# 2. 在登录页输入 admin@iyouren.top / admin12345
+# 2. 在登录页输入 admin@example.com / replace-with-your-admin-password
 # 3. 看到 /home 文章列表(应有"你好,博客")
 # 4. 点进文章看到 markdown 渲染
 # 5. 切 ✎ 标签看到草稿

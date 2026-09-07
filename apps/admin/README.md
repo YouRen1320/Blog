@@ -4,15 +4,13 @@ Vue 3 + Vite + 手写 CSS 的 SPA。文学风设计(借鉴 chlo.is),完全不用
 
 **生产地址**:<https://admin.iyouren.top>
 
-## 默认管理员账号
+## 管理员登录
 
-```
-邮箱:admin@iyouren.top
-密码:admin12345
-```
+项目不提供默认管理员账号。首次部署应按根 README 运行一次性
+`pnpm --filter api admin:create` 命令；后续使用创建时显式选择的凭据登录。
 
-> 第一次登录后建议立刻去 **/settings → AUTH · 改密码** 改新密码。
-> strict 限流 5/min,改完不强制踢人,旧 token 仍有效。
+改密码接口有 strict 5/min 限流。当前修改密码不会撤销已经签发的 JWT；如需让
+全部旧会话失效，应另行评估并轮换 JWT 密钥。
 
 ---
 

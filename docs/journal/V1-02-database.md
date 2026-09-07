@@ -10,7 +10,7 @@
 - Prisma schema 写好(User / Article / Category / Tag / ArticleTag)
 - 跑 migration 在 Postgres 里建出对应的表
 - 写一份 seed 脚本,造出可登录的管理员 + 几篇示例数据
-- `pnpm db:seed` 一键重置到已知状态
+- `pnpm seed:demo` 一键重置到已知状态
 
 **验收**:`docker exec blog-postgres psql -U blog -d blog -c "\dt"` 能看到全部业务表;seed 后 `SELECT FROM articles` 能看到示例文章。
 
@@ -124,9 +124,9 @@ $ pnpm db:migrate --name init
 Applying migration `20260504183321_init`
 Your database is now in sync with your schema.
 
-$ pnpm db:seed
+$ pnpm seed:demo
 ✅ Seed 完成
-   管理员:admin@iyouren.top / admin12345
+   管理员:admin@example.com / replace-with-your-admin-password
    文章:已发布 1 篇 + 草稿 1 篇
    分类:3 个,标签:5 个
 

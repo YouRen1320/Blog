@@ -129,7 +129,7 @@ $ curl -s -o /dev/null -w "%{http_code}\n" https://www.iyouren.top/
 200
 $ curl -s https://www.iyouren.top/api/articles | head -c 100
 {"data":[{"id":"...","title":"你好,博客 · 上线了",...
-$ curl -X POST https://www.iyouren.top/api/auth/login -d '{"email":"admin@iyouren.top","password":"admin12345"}'
+$ curl -X POST https://www.iyouren.top/api/auth/login -d '{"email":"admin@example.com","password":"replace-with-your-admin-password"}'
 {"accessToken":"eyJh...","user":{"role":"ADMIN",...}}
 $ docker compose ps
 6 containers, all Up, ai-service+api+postgres healthy

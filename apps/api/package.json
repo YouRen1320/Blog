@@ -23,8 +23,10 @@
     "db:migrate": "dotenv -e ../../.env -- prisma migrate dev",
     "db:migrate:deploy": "dotenv -e ../../.env -- prisma migrate deploy",
     "db:reset": "dotenv -e ../../.env -- prisma migrate reset",
-    "db:seed": "dotenv -e ../../.env -- prisma db seed",
+    "seed:demo": "dotenv -e ../../.env -- prisma db seed",
     "db:studio": "dotenv -e ../../.env -- prisma studio",
+    "admin:create": "dotenv -e ../../.env -- ts-node src/cli/create-admin.ts",
+    "admin:create:prod": "node dist/cli/create-admin.js",
     "seed:tester": "dotenv -e ../../.env -- node scripts/seed-tester.cjs"
   },
   "prisma": {

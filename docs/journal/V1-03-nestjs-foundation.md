@@ -152,11 +152,11 @@ $ GET /auth/profile  (no token)
 {"statusCode":401,"message":"Unauthorized",...}
 
 $ GET /auth/profile  (with token)
-{"id":"...","email":"admin@iyouren.top","role":"ADMIN"}
+{"id":"...","email":"admin@example.com","role":"ADMIN"}
 HTTP 200
 
 $ GET /users/me  (with token)
-{"id":"...","username":"admin","email":"admin@iyouren.top","role":"ADMIN",...}
+{"id":"...","username":"admin","email":"admin@example.com","role":"ADMIN",...}
 HTTP 200
 
 $ POST /auth/login {wrong pwd 6+ chars}

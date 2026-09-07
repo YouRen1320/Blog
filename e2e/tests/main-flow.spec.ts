@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { E2E_ADMIN } from './support/admin'
 
 /**
  * V1 主链路 e2e:
@@ -6,7 +7,7 @@ import { test, expect } from '@playwright/test'
  *
  * 假设:
  * - api / admin / web 已起(由 playwright.config.ts 的 webServer 处理)
- * - 数据库已 seed(管理员 admin@iyouren.top / admin12345 存在)
+ * - 数据库已运行非生产 demo seed，创建了隔离的 E2E 管理员
  *
  * 这条测试触达每一层:
  *   admin UI → axios → API (NestJS) → Prisma → Postgres
@@ -15,8 +16,6 @@ import { test, expect } from '@playwright/test'
 
 const ADMIN_URL = 'http://localhost:5174'
 const WEB_URL = 'http://localhost:3100'
-const ADMIN_EMAIL = 'admin@iyouren.top'
-const ADMIN_PASSWORD = 'admin12345'
 
 // 用时间戳让 slug 唯一,避免和其他 test run 残留冲突
 const stamp = Date.now()
@@ -28,8 +27,8 @@ test('完整发布主链路', async ({ page }) => {
   // ── 1. 登录 admin ───────────────────────────────────
   await page.goto(`${ADMIN_URL}/login`)
   await expect(page).toHaveTitle(/Admin/i)
-  await page.fill('input[type=email]', ADMIN_EMAIL)
-  await page.fill('input[type=password]', ADMIN_PASSWORD)
+  await page.fill('input[type=email]', E2E_ADMIN.email)
+  await page.fill('input[type=password]', E2E_ADMIN.password)
   await page.click('button[type=submit]')
 
   await page.waitForURL(`${ADMIN_URL}/dashboard`, { timeout: 10_000 })

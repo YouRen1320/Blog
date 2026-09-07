@@ -61,7 +61,7 @@ pnpm db:up
 (cd apps/ai-service && .venv/bin/uvicorn main:app --port 8001) &
 
 # NestJS
-pnpm --filter api db:seed
+pnpm --filter api seed:demo
 pnpm dev:api &
 
 # Admin / Web

@@ -15,7 +15,7 @@ class LoginPage extends ConsumerStatefulWidget {
 }
 
 class _LoginPageState extends ConsumerState<LoginPage> {
-  final _email = TextEditingController(text: 'admin@iyouren.top');
+  final _email = TextEditingController();
   final _password = TextEditingController();
   bool _busy = false;
   String? _error;

@@ -110,7 +110,7 @@ TS 在 esModuleInterop=true + supertest 的 ESM-style 导出下,`* as request` �
 ### 坑 4:Prisma 6.19 的"AI consent guard"
 跑 `prisma migrate reset` 时 Prisma 会检测到 AI agent 在用,要求 `PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION` 环境变量。
 这是 Prisma 团队在 2025 年加的安全特性,防 AI 误删生产 DB。
-**绕开方法**:用 `pnpm db:seed`(upsert,非破坏)恢复种子状态,或者用户手动跑 reset。**故意保留这个保护,不教 AI 怎么绕**。
+**绕开方法**:用 `pnpm seed:demo`(upsert,非破坏)恢复种子状态,或者用户手动跑 reset。**故意保留这个保护,不教 AI 怎么绕**。
 
 ### 坑 5:e2e 测试需要 prod parity
 仅用 `Test.createTestingModule` + `app.init()` 不会装 ValidationPipe / 全局过滤器。这意味着:
@@ -130,7 +130,7 @@ $ pnpm --filter api test:e2e
 Test Suites: 3 passed, 3 total
 Tests:       20 passed, 20 total
 
-$ pnpm db:seed
+$ pnpm seed:demo
 ✅ Seed 完成(数据库回到 baseline:1 admin / 2 articles / 3 categories / 5 tags)
 ```
 

@@ -135,23 +135,47 @@ describe('Articles admin flow (e2e)', () => {
     await request(server).post('/admin/articles').send({}).expect(401);
   });
 
-  it('普通用户访问 admin 接口返回 403', async () => {
+  it('普通用户只能管理自己的草稿，不能发布文章', async () => {
     const hash = await bcrypt.hash('userpass', 10);
     await prisma.user.create({
       data: {
-        email: 'user@iyouren.top',
+        email: 'user@example.test',
         username: 'user',
         passwordHash: hash,
         role: 'USER',
       },
     });
+    const adminArticle = await request(server)
+      .post('/admin/articles')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ title: 'Admin draft', slug: 'admin-draft', content: '...' })
+      .expect(201);
     const login = await request(server)
       .post('/auth/login')
-      .send({ email: 'user@iyouren.top', password: 'userpass' })
+      .send({ email: 'user@example.test', password: 'userpass' })
       .expect(200);
     const userToken = login.body.accessToken;
-    await request(server)
+
+    const ownDraft = await request(server)
+      .post('/admin/articles')
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({ title: 'User draft', slug: 'user-draft', content: '...' })
+      .expect(201);
+    const list = await request(server)
       .get('/admin/articles')
+      .set('Authorization', `Bearer ${userToken}`)
+      .expect(200);
+
+    expect(list.body.data.map((article: { id: string }) => article.id)).toEqual(
+      [ownDraft.body.id],
+    );
+    expect(list.body.data).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: adminArticle.body.id }),
+      ]),
+    );
+    await request(server)
+      .patch(`/admin/articles/${ownDraft.body.id}/publish`)
       .set('Authorization', `Bearer ${userToken}`)
       .expect(403);
   });

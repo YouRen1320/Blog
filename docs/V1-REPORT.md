@@ -127,7 +127,7 @@ pnpm db:up
 
 # 3. 跑迁移 + seed
 pnpm --filter api db:migrate
-pnpm --filter api db:seed
+pnpm --filter api seed:demo
 
 # 4. 全部 dev 服务一起跑
 pnpm dev
@@ -137,8 +137,8 @@ pnpm dev:admin    # http://localhost:5174
 pnpm dev:web      # http://localhost:3100
 
 # 5. 登录后台
-# email:    admin@iyouren.top
-# password: admin12345
+# email:    admin@example.com
+# password: replace-with-your-admin-password
 
 # 6. 跑测试
 pnpm --filter api test          # unit

@@ -48,7 +48,7 @@ V3 把 `apps/mobile` 从 v3 design 静态 demo 升级成完整 mobile app:登录
 1. 起后端:`pnpm --filter api start:prod`(已 seed 过)
 2. 起 admin:`pnpm --filter admin dev`(可选,移动端不依赖)
 3. cd `apps/mobile && flutter run -d <device>`
-4. 登录 `admin@iyouren.top / admin12345`
+4. 登录 `admin@example.com / replace-with-your-admin-password`
 5. 验证:
    - ✅ 主页看到 seed 文章 "你好,博客"
    - ✅ 点进去 markdown 正文渲染正常

@@ -74,13 +74,15 @@ POST   /admin/ai/drafts                     (ai 10/min)
 
 详细字段见 [`prisma/schema.prisma`](prisma/schema.prisma)。
 
-## 默认账号 + seed
+## 管理员初始化与 demo seed
 
-```
-admin@iyouren.top / admin12345
-```
+源码环境使用 `pnpm admin:create`，生产 API 容器使用
+`node dist/cli/create-admin.js` 创建管理员。命令要求显式提供 `ADMIN_EMAIL`、
+`ADMIN_USERNAME` 和 `ADMIN_PASSWORD`，只创建新管理员，不提升普通用户，也不修改
+已有管理员密码。
 
-种子在 `prisma/seed.ts`,通过 `pnpm prisma db seed` 执行。生产首次部署后由 V2 阶段插入了一篇「第一灯」文章。
+`prisma/seed.ts` 只生成本地/E2E 示例数据，通过 `pnpm seed:demo` 执行。
+`NODE_ENV=production` 时，它会在创建 Prisma 客户端前拒绝运行。
 
 ---
 
@@ -91,11 +93,11 @@ admin@iyouren.top / admin12345
 docker compose up -d
 pnpm db:logs
 
-# 2. 安装 + migrate + seed
+# 2. 安装 + migrate + 非生产 demo seed
 pnpm install
 cd apps/api
 pnpm prisma migrate deploy
-pnpm prisma db seed
+pnpm seed:demo
 
 # 3. 启动
 pnpm dev:api          # :3000
@@ -112,6 +114,12 @@ DATABASE_URL=postgresql://blog:blog@localhost:5432/blog
 JWT_SECRET=<random-string>
 JWT_EXPIRES_IN=7d
 AI_SERVICE_BASE_URL=http://127.0.0.1:8001
+ADMIN_EMAIL=owner@example.com
+ADMIN_USERNAME=owner
+ADMIN_PASSWORD=<one-time-secret>
+E2E_ADMIN_EMAIL=e2e-admin@example.test
+E2E_ADMIN_USERNAME=e2e-admin
+E2E_ADMIN_PASSWORD=e2e-admin-password
 ```
 
 ---
@@ -127,6 +135,20 @@ node node_modules/prisma/build/index.js migrate deploy && node dist/main.js
 启动时**自动跑 prisma migrate deploy**,所以 schema 改动只要文件同步过去 + 重启容器就生效。无需手动执行 migration。
 
 健康检查:`GET /healthz`(无认证),docker-compose 用它做 healthcheck。
+
+首次部署完成迁移后，在服务器 shell 中读取一次性凭据并传入容器；不要把真实值写进
+README、聊天或 shell 命令历史：
+
+```bash
+read -r ADMIN_EMAIL
+read -r ADMIN_USERNAME
+read -rs ADMIN_PASSWORD && printf '\n'
+export ADMIN_EMAIL ADMIN_USERNAME ADMIN_PASSWORD
+docker compose --env-file .env.production -f docker-compose.prod.yml exec \
+  -e ADMIN_EMAIL -e ADMIN_USERNAME -e ADMIN_PASSWORD api \
+  node dist/cli/create-admin.js
+unset ADMIN_EMAIL ADMIN_USERNAME ADMIN_PASSWORD
+```
 
 ```bash
 # 服务器侧
