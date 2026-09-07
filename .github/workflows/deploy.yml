@@ -1,12 +1,13 @@
-# PR 与 main 共用同一组检查；只有 main 的 push 可以进入生产部署。
+# PR、main 与手动部署共用同一组检查；只有显式手动触发可以进入生产部署。
 # 所有 Actions 都固定到完整提交 SHA，避免可移动标签引入供应链变化。
 
-name: 持续集成与生产部署
+name: 持续集成与手动生产部署
 
 on:
   pull_request:
   push:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -135,7 +136,8 @@ jobs:
   deploy:
     name: 部署生产环境
     needs: [test, ai-test]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # 合并只负责验证；生产发布必须由维护者从 main 显式发起。
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 40
     environment: production

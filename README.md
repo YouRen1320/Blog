@@ -142,13 +142,14 @@ cd apps/mobile && flutter pub get && flutter run
 
 ### 自动化检查与部署
 
-Pull Request 会在隔离的 pgvector 数据库上执行迁移、API 测试以及 API、Admin、
-Web 构建，并保存以 commit SHA 命名的 Nuxt `.output` 产物。Pull Request 不会读取
-生产 Secret，也不会部署。
+Pull Request 和 `main` push 会在隔离的 pgvector 数据库上执行迁移、API 测试以及
+API、Admin、Web 构建，并保存以 commit SHA 命名的 Nuxt `.output` 产物。普通提交
+不会读取生产 Secret，也不会部署。
 
-只有 `main` 的 push 且所有检查通过后才会部署。部署任务下载同一次运行生成的 Web
-产物，校验 SHA-256，通过已验证主机指纹的 SSH 传输；服务器随后检出同一个 commit，
-拒绝覆盖未提交的已跟踪改动，并等待 Compose 服务进入健康状态。
+生产部署只能在 Actions 页面从 `main` 手动触发“持续集成与手动生产部署”。该次运行
+会先完整复跑所有检查，再下载同一次运行生成的 Web 产物，校验 SHA-256，通过已验证
+主机指纹的 SSH 传输；服务器随后检出同一个 commit，拒绝覆盖未提交的已跟踪改动，
+并等待 Compose 服务进入健康状态。这样不会因为合并代码而自动改动线上环境。
 
 GitHub 的 `production` Environment 需要配置：
 
@@ -159,10 +160,9 @@ GitHub 的 `production` Environment 需要配置：
 - `SERVER_SSH_FINGERPRINT`：从云厂商控制台或其他可信通道取得的 SSH 主机公钥 SHA-256 指纹
 
 首次启用前还需确认服务器的 Docker Compose 支持 `up --wait`，且部署用户可写
-`SERVER_DEPLOY_DIR`。原来的手动 `workflow_dispatch` 入口已移除，避免绕过“main push
-对应唯一构建产物”的约束。
+`SERVER_DEPLOY_DIR`。Secret 缺失时手动部署会在传输前失败，不会连接或修改服务器。
 
-回滚时优先在 GitHub 上 revert 问题提交并推送到 `main`，让同一流水线重新构建和部署。
+回滚时优先在 GitHub 上 revert 问题提交，检查通过后再从 `main` 手动运行同一工作流。
 服务器会保留上一次 `.output.previous` 和按 SHA 存放的传输产物，供流水线不可用时人工
 恢复；数据库迁移不承诺可逆，涉及数据库变更时仍需先按现有备份流程验证恢复。
 
